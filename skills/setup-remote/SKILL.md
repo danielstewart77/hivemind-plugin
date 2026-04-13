@@ -1,6 +1,6 @@
 ---
 name: setup-remote
-description: Install Hive Mind on a remote host via SSH. Uses the remote-admin bridge service. Handles SSH key enrollment automatically — first connection uses a one-time bootstrap password, subsequent connections use a keyring-stored key.
+description: Install Hive Mind on a remote host via SSH. Uses the remote-admin bridge service. Walks through an onboarding questionnaire covering machine purpose, SSH key enrollment, and sudo strategy before installing.
 argument-hint: "[host] [--standalone | --federated]"
 user-invocable: true
 tools: Bash
@@ -9,20 +9,54 @@ tools: Bash
 # setup-remote
 
 Install Hive Mind on a remote host. Drives the remote-admin SSH bridge.
-SSH credentials are per-user, keyed by Telegram user ID. Key enrollment is
-handled automatically on first use.
+SSH credentials are per-user, keyed by Telegram user ID. Sudo strategy is
+determined by machine purpose and user preference.
 
 ---
 
-## Step 1 — Gather target info
+## Step 1 — Onboarding questionnaire
 
-Ask the user (or parse from `$ARGUMENTS`):
+Ask the user for the following. Parse from `$ARGUMENTS` where possible, ask for the rest.
+
+### 1a — Target machine
 - `TARGET_HOST` — IP or hostname
 - `TARGET_PORT` — SSH port (default 22)
 - `TARGET_USER` — username on the remote host
 - `TOPOLOGY` — `standalone` (default) or `federated`
 
-Do NOT ask for a password or key — these are resolved in Step 2.
+### 1b — Machine purpose
+Ask: "What is this machine? (e.g. public-facing server, home lab, cloud VM, Raspberry Pi, etc.)"
+
+Based on the answer, classify as:
+- **HIGH_RISK** — public-facing (VPN gateway, web server, exposed SSH, cloud VM with public IP)
+- **MEDIUM_RISK** — LAN-accessible but not directly internet-exposed
+- **LOW_RISK** — local-only, air-gapped, or heavily firewalled
+
+Give a brief security note based on classification:
+- HIGH_RISK: "This machine is internet-exposed. I recommend using a sudo password rather than passwordless sudo."
+- MEDIUM_RISK: "Passwordless sudo is moderate risk here. I'd still recommend a password for sudo."
+- LOW_RISK: "Passwordless sudo is low risk on a local-only machine."
+
+### 1c — SSH key situation
+Ask: "Do you already have an SSH key set up on this machine, or do I need to enroll one?"
+- `KEY_STATUS` = `existing` | `enroll`
+
+### 1d — Sudo strategy
+Ask: "How should I handle sudo on this machine?"
+Present options based on risk classification:
+- **(a) Passwordless sudo** — recommended only for LOW_RISK
+- **(b) Sudo with stored password** — I'll store it securely in the keyring, inject it per command. Recommended for HIGH_RISK and MEDIUM_RISK.
+- **(c) Already passwordless** — skip setup, just use sudo directly
+- **(d) Skip sudo** — I'll install Docker and other tools only if you already have them
+
+Set `SUDO_STRATEGY` = `passwordless` | `stored_password` | `already_passwordless` | `skip`
+
+If `stored_password`: ask for the sudo password now and store it:
+```bash
+# Store in keyring — never echoed or logged
+SUDO_KEY="remote_admin_sudo_$(echo $TARGET_HOST | tr '.' '_')"
+# Use secrets tool or keyring directly to store SUDO_PASS
+```
 
 ---
 
@@ -43,103 +77,119 @@ TID="${TELEGRAM_USER_ID:-default}"
 PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}" 2>/dev/null)
 ```
 
-**If `PKEY` is set:** skip to Step 4 — key already enrolled, use it.
+**If `PKEY` is set OR `KEY_STATUS=existing`:** skip to Step 4.
 
-**If `PKEY` is empty:** run enrollment flow:
+**If `PKEY` is empty AND `KEY_STATUS=enroll`:** run enrollment flow:
 
-### Enrollment flow (first-time setup for this user)
-
-```
-"No SSH key found for your user. I'll set one up now.
-Please provide a one-time bootstrap password for $TARGET_USER@$TARGET_HOST.
-This password will be used only once to install your key and will not be stored after enrollment."
-```
-
-Store the bootstrap password temporarily:
+Ask for a one-time bootstrap password for `$TARGET_USER@$TARGET_HOST`. Store temporarily:
 ```bash
-# Prompt user for password, then:
 python3 tools/stateless/secrets/secrets.py set "remote_admin_bootstrap_${TID}" "$BOOTSTRAP_PASS"
 BPASS=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_bootstrap_${TID}")
 ```
 
 Open bootstrap session with password:
 ```bash
-BOOT_SID=$(curl -s -X POST http://localhost:8430/sessions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
+BOOT_SID=$(curl -s -X POST $BASE/sessions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d "{\"host\":\"$TARGET_HOST\",\"port\":$TARGET_PORT,\"username\":\"$TARGET_USER\",\"password\":\"$BPASS\"}" \
   | jq -r '.session_id')
 ```
 
-Generate ed25519 key pair locally:
+Generate ed25519 key pair and deploy:
 ```bash
 ssh-keygen -t ed25519 -f /tmp/hive_admin_${TID} -N "" -q
 PUBKEY=$(cat /tmp/hive_admin_${TID}.pub)
 PRIVKEY=$(cat /tmp/hive_admin_${TID})
-```
 
-Deploy public key to remote host:
-```bash
-curl -s -X POST http://localhost:8430/sessions/$BOOT_SID/exec \
+curl -s -X POST $BASE/sessions/$BOOT_SID/exec \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d "{\"command\":\"mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$PUBKEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\"}"
-```
 
-Store private key in keyring, clean up temp files and bootstrap session:
-```bash
+# Store private key, clean up
 python3 tools/stateless/secrets/secrets.py set "remote_admin_ssh_key_${TID}" "$PRIVKEY"
 python3 tools/stateless/secrets/secrets.py delete "remote_admin_bootstrap_${TID}"
 rm -f /tmp/hive_admin_${TID} /tmp/hive_admin_${TID}.pub
-curl -s -X DELETE http://localhost:8430/sessions/$BOOT_SID -H "Authorization: Bearer $TOKEN"
+curl -s -X DELETE $BASE/sessions/$BOOT_SID -H "Authorization: Bearer $TOKEN"
 PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}")
-echo "SSH key enrolled. Bootstrap password removed."
+echo "SSH key enrolled."
 ```
 
 ---
 
-## Step 4 — Open SSH session (key auth)
+## Step 4 — Open SSH session
 
 ```bash
-SID=$(curl -s -X POST http://localhost:8430/sessions \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
+BASE="http://hive-mind-remote-admin:8430"
+
+SID=$(curl -s -X POST $BASE/sessions \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d "{\"host\":\"$TARGET_HOST\",\"port\":$TARGET_PORT,\"username\":\"$TARGET_USER\",\"private_key\":\"$PKEY\"}" \
   | jq -r '.session_id')
 echo "Session: $SID"
 ```
 
-Define exec helper:
+Define exec helpers:
 ```bash
+# Unprivileged command
 run() {
-  curl -s -X POST http://localhost:8430/sessions/$SID/exec \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"command\":\"$1\",\"timeout\":${2:-30}}"
+  curl -s -X POST $BASE/sessions/$SID/exec \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d "{\"command\":\"$1\",\"timeout\":${2:-30}}" | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+print(d.get('stdout','').strip())
+e=d.get('stderr','').strip()
+if e: print('[stderr]', e)
+"
 }
+
+# Privileged command — strategy determined in Step 1d
+sudorun() {
+  if [ "$SUDO_STRATEGY" = "stored_password" ] && [ -n "$SUDO_PASS" ]; then
+    run "echo '$SUDO_PASS' | sudo -S $1" ${2:-30}
+  elif [ "$SUDO_STRATEGY" = "already_passwordless" ] || [ "$SUDO_STRATEGY" = "passwordless" ]; then
+    run "sudo $1" ${2:-30}
+  else
+    echo "SKIP (no sudo configured): $1"
+  fi
+}
+```
+
+If `SUDO_STRATEGY=stored_password`, retrieve the password:
+```bash
+SUDO_KEY="remote_admin_sudo_$(echo $TARGET_HOST | tr '.' '_')"
+SUDO_PASS=$(# retrieve from keyring using venv python)
 ```
 
 ---
 
-## Step 5 — Prerequisites check
+## Step 5 — Configure passwordless sudo (if chosen)
+
+Only if `SUDO_STRATEGY=passwordless`:
+```bash
+sudorun "bash -c \"echo '$TARGET_USER ALL=(ALL) NOPASSWD:ALL | tee /etc/sudoers.d/hivemind-admin\""
+```
+
+---
+
+## Step 6 — Prerequisites check
 
 ```bash
 run "uname -a"
-run "docker --version"
-run "docker compose version"
+run "docker --version" && run "docker compose version"
 run "git --version"
 run "free -h"
 run "df -h /"
 ```
 
-If Docker is missing, offer to install it:
+If Docker is missing, install it:
 ```bash
-run "curl -fsSL https://get.docker.com | sh" 120
-run "sudo usermod -aG docker $TARGET_USER"
+sudorun "sh -c 'curl -fsSL https://get.docker.com | sh'" 120
+sudorun "usermod -aG docker $TARGET_USER"
 ```
 
 ---
 
-## Step 6 — Clone the repo
+## Step 7 — Clone the repo
 
 ```bash
 run "git clone https://github.com/danielstewart77/hive_mind.git ~/hive_mind || (cd ~/hive_mind && git pull)" 60
@@ -147,29 +197,25 @@ run "git clone https://github.com/danielstewart77/hive_mind.git ~/hive_mind || (
 
 ---
 
-## Step 7 — Configure
+## Step 8 — Configure
 
 ```bash
-run "cd ~/hive_mind && cp .env.example .env" 10
+run "cd ~/hive_mind && cp .env.example .env"
 ```
 
 Ask for required config values (Anthropic API key, Neo4j password, etc.) and write to remote `.env`:
 ```bash
 run "cd ~/hive_mind && sed -i 's/ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=$ANTHROPIC_KEY/' .env"
-```
-
-For standalone topology:
-```bash
-run "cd ~/hive_mind && echo 'COMPOSE_PROFILES=standalone' >> .env"
+run "cd ~/hive_mind && echo 'COMPOSE_PROFILES=standalone' >> .env"  # if standalone
 ```
 
 ---
 
-## Step 8 — Start services
+## Step 9 — Start services
 
 ```bash
-run "cd ~/hive_mind && docker compose pull" 120
-run "cd ~/hive_mind && docker compose up -d" 60
+sudorun "bash -c 'cd ~/hive_mind && docker compose pull'" 120
+sudorun "bash -c 'cd ~/hive_mind && docker compose up -d'" 60
 ```
 
 Verify:
@@ -179,7 +225,7 @@ run "curl -sf http://localhost:8420/sessions > /dev/null && echo UP || echo DOWN
 
 ---
 
-## Step 9 — Register mind (federated only)
+## Step 10 — Register mind (federated only)
 
 ```bash
 REMOTE_MIND_URL="http://$TARGET_HOST:8420"
@@ -190,7 +236,7 @@ curl -s -X POST http://localhost:8420/broker/minds \
 
 ---
 
-## Step 10 — Install Claude Code auth
+## Step 11 — Claude Code auth
 
 ```bash
 echo "Connect interactively to complete Claude auth:"
@@ -200,20 +246,20 @@ echo "Then run: claude auth login"
 
 ---
 
-## Step 11 — Clean up and report
+## Step 12 — Clean up and report
 
 ```bash
-curl -s -X DELETE http://localhost:8430/sessions/$SID -H "Authorization: Bearer $TOKEN"
+curl -s -X DELETE $BASE/sessions/$SID -H "Authorization: Bearer $TOKEN"
 ```
 
 ```
 Remote Setup Complete
 ====================
-Host:       $TARGET_HOST
-Topology:   $TOPOLOGY
-Gateway:    $STATUS
-Mind:       $MIND_NAME ($REGISTRATION_STATUS)
-SSH key:    enrolled for user $TID
+Host:        $TARGET_HOST
+Topology:    $TOPOLOGY
+Sudo:        $SUDO_STRATEGY
+SSH key:     enrolled for user $TID
+Gateway:     $STATUS
 
 Next steps:
 - SSH in and run: claude auth login  (if not done interactively)

@@ -17,6 +17,8 @@ Interact with the Remote Admin SSH bridge service at `http://localhost:8430`.
 Do this before any operation:
 
 ```bash
+BASE="http://hive-mind-remote-admin:8430"
+
 # Service auth token
 TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
 
@@ -27,6 +29,34 @@ PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TI
 
 If `PKEY` is empty: this user has no enrolled SSH key yet. Direct them to run
 `/setup-remote` on any target host first — enrollment happens automatically during setup.
+
+### Sudo helper
+
+After opening a session, define `sudorun` for privileged commands. The sudo
+strategy is stored per-host in the keyring as `remote_admin_sudo_<host_underscored>`.
+
+```bash
+# Retrieve sudo password for this host (empty = no password configured)
+SUDO_KEY="remote_admin_sudo_$(echo $TARGET_HOST | tr '.' '_')"
+SUDO_PASS=$(python3 -c "
+import keyring, os, sys
+os.environ['PYTHON_KEYRING_BACKEND'] = 'keyrings.alt.file.PlaintextKeyring'
+v = keyring.get_password('hive-mind', sys.argv[1].upper())
+print(v or '')
+" "$SUDO_KEY" 2>/dev/null)
+
+sudorun() {
+  if [ -n "$SUDO_PASS" ]; then
+    run "echo '$SUDO_PASS' | sudo -S $1" ${2:-30}
+  else
+    run "sudo $1" ${2:-30}
+  fi
+}
+```
+
+If `SUDO_PASS` is empty and the command needs sudo, either:
+- The host has passwordless sudo (works fine)
+- Or direct the user to run `/setup-remote` again to configure sudo strategy
 
 ---
 
