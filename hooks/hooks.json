@@ -1,0 +1,23 @@
+{
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ~/.claude-config/hooks/session_start_identity.sh",
+          "timeout": 10
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ~/.claude-config/hooks/soul_nudge.sh"
+        }
+      ]
+    }
+  ]
+}

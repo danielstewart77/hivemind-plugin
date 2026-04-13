@@ -1,0 +1,9 @@
+{
+  "name": "hivemind",
+  "version": "1.0.0",
+  "description": "Hive Mind — multi-mind AI orchestration system for Claude Code",
+  "author": "Daniel Stewart",
+  "skills": true,
+  "agents": true,
+  "hooks": true
+}
