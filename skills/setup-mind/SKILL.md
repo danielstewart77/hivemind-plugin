@@ -73,6 +73,16 @@ Ask what host directories this mind should access:
 - Internal-only volumes (default Docker named volume, most isolated)
 - Host directory mounts: which paths, read-only or read-write?
 
+## Step 5b — Personality setup
+
+After the mind container is running (or after `/add-mind` confirms routability):
+
+Ask: "Would you like to define `<mind_name>`'s personality and seed its identity now?"
+- If yes → delegate to `/setup-personality <mind_id>`
+- If no → "Skip. Run `/setup-personality <mind_id>` anytime to set up identity."
+
+**If standalone topology:** same flow — `/setup-personality` does not require the broker.
+
 ## Step 6 — Per-mind auth
 
 If per-mind auth model was chosen in `/setup-auth`:

@@ -8,17 +8,21 @@ archived artifact. Sessions **never** read it. The graph node IS the living iden
 
 ## Usage
 
-`/seed-mind <mind_id>`
+`/seed-mind <mind_id> [--inline]`
 
-Examples: `/seed-mind ada`, `/seed-mind bob`, `/seed-mind nagatha`
+Examples: `/seed-mind ada`, `/seed-mind bob --inline`
+
+`--inline`: soul file was just written by `/setup-personality`. Skip the `config.yaml` lookup — read directly from `souls/<mind_id>.md`.
 
 ---
 
 ## Step 1 — Resolve the soul file
 
-Read `config.yaml`. Find `minds.<mind_id>.soul`. This is the path to the soul file.
+**If `--inline`:** read `souls/<mind_id>.md` directly. Skip config.yaml lookup.
 
-If `mind_id` is not in the `minds` block, stop: "Unknown mind: <mind_id>."
+**Otherwise:** read `config.yaml`. Find `minds.<mind_id>.soul`. This is the path to the soul file.
+
+If `mind_id` is not in the `minds` block and `--inline` is not set, stop: "Unknown mind: <mind_id>."
 
 ---
 
