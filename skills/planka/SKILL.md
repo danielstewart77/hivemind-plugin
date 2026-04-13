@@ -72,8 +72,9 @@ pip install charset-normalizer --break-system-packages -q
 
 ## Commands
 
-- `list-projects` — List all projects and boards
-- `get-board --board-id <id>` — Get board with lists and cards
+- `list-projects` — List all projects and boards (returns project IDs, board IDs)
+- `get-board --board-id <id>` — Get board with lists and cards (returns list IDs)
+- `list-labels --board-id <id>` — List all labels on a board with IDs (used by `/setup-resolve-placeholders` for auto-discovery)
 - `get-card --card-id <id>` — Get card details
 - `move-card --card-id <id> --list-id <id>` — Move card to list
 - `add-comment --card-id <id> --text "<text>"` — Add comment

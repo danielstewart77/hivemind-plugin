@@ -52,7 +52,8 @@ If `all`, run in this order (each completes before the next):
 4. `/setup-nervous-system`
 5. `/setup-provider`
 6. `/setup-body`
-7. `/setup-mind`
+7. `/setup-resolve-placeholders`
+8. `/setup-mind`
 
 If a specific component, run just that sub-skill.
 
