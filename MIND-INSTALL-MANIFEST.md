@@ -111,6 +111,7 @@ For minds that monitor and maintain the Hive Mind system.
 | `update-hivemind` | Check for and apply Hive Mind updates from origin/master |
 | `update-documentation` | Sync README and docs to current codebase state |
 | `sync-discord-slash-commands` | Sync user-invocable skills to Discord as slash commands |
+| `remote-admin` | Manage SSH sessions on remote hosts via the remote-admin bridge service |
 
 ### Advanced _(a-la-carte)_
 

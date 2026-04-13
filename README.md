@@ -159,6 +159,7 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 | `/hivemind:sitrep` | Military-style system situation report |
 | `/hivemind:agent-logs` | Scan system log files for critical entries |
 | `/hivemind:update-hivemind` | Check for and apply Hive Mind updates from origin/master |
+| `/hivemind:remote-admin` | Manage SSH sessions on remote hosts via the remote-admin bridge |
 | `/hivemind:person-node-audit` | Audit and repair Person nodes in the knowledge graph |
 
 ### Scheduling
