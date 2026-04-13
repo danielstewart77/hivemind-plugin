@@ -93,7 +93,39 @@ If per-mind auth model was chosen in `/setup-auth`:
 - Or for API key: configure the key in the mind container env
 - Verify auth works
 
-## Step 7 — Repeat or finish
+## Step 7 — Skill selection
+
+Read `skills/SKILLS.md` to get the canonical skill groups and descriptions.
+
+**Core groups (silent — install automatically, do not present):**
+- Core — Identity
+- Core — Utilities
+
+**Present the remaining groups as selectable options:**
+
+```
+Skills for <mind_name>
+======================
+Core skills (memory, identity, utilities) are installed automatically.
+
+Optional skill groups — select any that apply to this mind's role:
+
+  1. Development    — coding, planning, review, story management
+  2. Research       — web browsing, X/Twitter, crypto, weather
+  3. Productivity   — Planka, reminders, inter-mind messaging
+  4. Publishing     — email, LinkedIn, PDF, diagrams
+  5. System / Ops   — sitrep, logs, updates, Discord sync
+  6. Advanced       — skill/tool creation, memory auditing
+  7. None — core only
+
+Enter numbers separated by commas, or 'all', or 'none':
+```
+
+For each selected group, list the individual skills from `SKILLS.md` and confirm, or offer "install whole group" as a default.
+
+Note skipped groups: "You can add more skills later by re-running `/setup-mind`."
+
+## Step 8 — Repeat or finish
 
 Ask: "Would you like to set up another mind?"
 - If yes → return to Step 3

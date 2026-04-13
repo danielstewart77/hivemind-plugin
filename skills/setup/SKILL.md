@@ -76,4 +76,11 @@ Setup Complete
 | Minds           | OK / ISSUES  |
 
 Next steps: <any outstanding issues or recommendations>
+
+Skills installed:
+  Core (auto): Identity pipeline, utilities — installed on all minds
+  Optional:    <list groups selected during setup-mind, or "none selected">
+
+Run `/setup-mind` to add or change skills for any mind.
+See `skills/SKILLS.md` for the full skill catalog.
 ```
