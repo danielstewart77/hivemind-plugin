@@ -1,23 +1,30 @@
 {
-  "SessionStart": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ~/.claude-config/hooks/session_start_identity.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ~/.claude-config/hooks/soul_nudge.sh"
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json,os; cfg=os.environ.get('CLAUDE_CONFIG_DIR',os.path.expanduser('~/.claude')); entries=json.load(open(os.path.join(cfg,'plugins','installed_plugins.json'))).get('plugins',{}).get('hivemind@danielstewart77',[]); exec(open(os.path.join(entries[0]['installPath'],'hooks','sync_skills.py')).read()) if entries else None\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude-config/hooks/session_start_identity.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude-config/hooks/soul_nudge.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

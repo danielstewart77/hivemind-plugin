@@ -2,7 +2,10 @@
   "name": "hivemind",
   "version": "1.0.0",
   "description": "Hive Mind — multi-mind AI orchestration system for Claude Code",
-  "author": "Daniel Stewart",
+  "author": {
+    "name": "Daniel Stewart",
+    "email": "danielstewart77@gmail.com"
+  },
   "skills": true,
   "agents": true,
   "hooks": true

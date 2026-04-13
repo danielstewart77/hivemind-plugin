@@ -1,6 +1,6 @@
 ---
 name: remote-admin
-description: Manage SSH sessions on remote hosts via the remote-admin bridge service. Create sessions, run commands, stream interactive shells. Base URL http://localhost:8430.
+description: Manage SSH sessions on remote hosts via the remote-admin bridge service. Create sessions, run commands, stream interactive shells. Credentials are resolved automatically from the keyring by Telegram user ID.
 argument-hint: "[connect|exec|list|close|shell] [args]"
 user-invocable: true
 tools: Bash
@@ -9,33 +9,51 @@ tools: Bash
 # remote-admin
 
 Interact with the Remote Admin SSH bridge service at `http://localhost:8430`.
-All requests require `Authorization: Bearer $REMOTE_ADMIN_TOKEN`.
 
-Get the token:
+---
+
+## Step 0 — Resolve credentials
+
+Do this before any operation:
+
 ```bash
+# Service auth token
 TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
+
+# Per-user SSH key — keyed by Telegram user ID
+TID="${TELEGRAM_USER_ID:-default}"
+PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}" 2>/dev/null)
 ```
+
+If `PKEY` is empty: this user has no enrolled SSH key yet. Direct them to run
+`/setup-remote` on any target host first — enrollment happens automatically during setup.
 
 ---
 
 ## Connect to a remote host
 
+**Standard (key auth — resolved from keyring):**
 ```bash
-curl -s -X POST http://localhost:8430/sessions \
+SID=$(curl -s -X POST http://localhost:8430/sessions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"host":"<host>","port":22,"username":"<user>","password":"<pass>"}'
-# Returns: {"session_id":"abc12345", ...}
+  -d "{\"host\":\"<host>\",\"port\":22,\"username\":\"<user>\",\"private_key\":\"$PKEY\"}" \
+  | jq -r '.session_id')
+echo "Session: $SID"
 ```
 
-With a private key (PEM text, newlines as \n):
+**Bootstrap only (password — first connection to a new host before key enrollment):**
 ```bash
-PKEY=$(cat ~/.ssh/id_rsa | awk '{printf "%s\\n", $0}')
-curl -s -X POST http://localhost:8430/sessions \
+# Retrieve one-time bootstrap password from keyring — never hardcode or display
+BPASS=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_bootstrap_${TID}" 2>/dev/null)
+SID=$(curl -s -X POST http://localhost:8430/sessions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"host\":\"<host>\",\"username\":\"<user>\",\"private_key\":\"$PKEY\"}"
+  -d "{\"host\":\"<host>\",\"port\":22,\"username\":\"<user>\",\"password\":\"$BPASS\"}" \
+  | jq -r '.session_id')
 ```
+
+---
 
 ## List sessions
 
@@ -70,7 +88,6 @@ curl -s -X DELETE http://localhost:8430/sessions/<session_id> \
 
 ## Interactive shell (WebSocket)
 
-Use `websocat` or any WebSocket client:
 ```bash
 websocat "ws://localhost:8430/sessions/<session_id>/stream?token=$TOKEN"
 ```
@@ -79,44 +96,41 @@ websocat "ws://localhost:8430/sessions/<session_id>/stream?token=$TOKEN"
 
 ## Common workflows
 
-### Run a series of commands
-```bash
-SID=<session_id>
-run() { curl -s -X POST http://localhost:8430/sessions/$SID/exec \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d "{\"command\":\"$1\"}" | jq -r '.stdout,.stderr'; }
-
-run "docker --version"
-run "git --version"
-run "free -h"
-```
-
-### Full connect-exec-close pattern
+### Full connect-exec-close
 ```bash
 TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token)
+TID="${TELEGRAM_USER_ID:-default}"
+PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}")
+
 SID=$(curl -s -X POST http://localhost:8430/sessions \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"host":"192.168.1.x","username":"pi","password":"raspberry"}' | jq -r '.session_id')
+  -d "{\"host\":\"192.168.1.x\",\"username\":\"pi\",\"private_key\":\"$PKEY\"}" \
+  | jq -r '.session_id')
 
-curl -s -X POST http://localhost:8430/sessions/$SID/exec \
+run() { curl -s -X POST http://localhost:8430/sessions/$SID/exec \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"command":"uptime"}' | jq -r .stdout
+  -d "{\"command\":\"$1\",\"timeout\":${2:-30}}" | jq -r '.stdout,.stderr'; }
 
-curl -s -X DELETE http://localhost:8430/sessions/$SID \
-  -H "Authorization: Bearer $TOKEN"
+run "uptime"
+run "df -h /"
+
+curl -s -X DELETE http://localhost:8430/sessions/$SID -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
 
 ## Service management
 
-The remote-admin service runs as a Docker container (`hive-mind-remote-admin`) on port 8430.
-
-Start/stop:
 ```bash
+# Via MCP (preferred from inside Ada):
+# compose_up(project="hive_mind", service="remote-admin")
+
+# Direct docker (from host):
 docker compose up -d remote-admin
-docker compose stop remote-admin
 docker compose logs remote-admin
 ```
 
-Token is set via `REMOTE_ADMIN_TOKEN` in your `.env` file.
+`REMOTE_ADMIN_TOKEN` is set in `.env`. Store it in keyring too:
+```bash
+python3 tools/stateless/secrets/secrets.py set remote_admin_token <token>
+```
