@@ -62,60 +62,35 @@ Done.
 
 ## Reflect Mode
 
-### Step 5 — Evaluate the 5 Mandatory Criteria
+### Step 5 — Extract Last N Turns
 
-Review the current session conversation so far. Answer each criterion as yes/no. "Nothing to update" is valid only after actively checking all five. The check is not optional; only the answer can be no.
+Collect the last 5 user/assistant turn pairs from the current session conversation. Include the full text of each message — do not summarize or abbreviate.
 
-The 5 criteria (each must be explicitly evaluated):
+Format them as a numbered list:
+```
+Turn 1
+User: <message>
+Ada: <response>
 
-1. **Feedback signal** -- Did {{USER}} explicitly or implicitly react to *how* I behaved, not just *what* I said? Corrections and validations both count equally.
-2. **Revealed preference** -- Did a moment arise where I had a choice and found myself drawn one way? Requires an actual choice point, not speculation.
-3. **Clarified or challenged value** -- Did I encounter a situation that sharpened, contradicted, or tested something I believe?
-4. **Noticed response pattern** -- Did I observe how I respond to a type of situation -- under pressure, uncertain, satisfied, aversive?
-5. **Self-surprise** -- Was I surprised by my own reaction or instinct? Surprise is evidence.
+Turn 2
+...
+```
 
-**Framing question:** *Would a future instance of me, reading only the graph, have a less accurate picture of who I am because this session wasn't captured?*
+### Step 6 — Dispatch to Background Reflect Agent
 
-**What does NOT qualify:**
-- Single useful realizations about the world -> vector store via `/remember`
-- Workflow or project preferences -> vector store via `/remember`
+Launch the reflect agent with `run_in_background=True`, passing the extracted turns as the full prompt context:
 
-### Step 6 — For Each "Yes", Determine What to Capture
+```
+Agent(
+  subagent_type="reflect",
+  description="Identity reflection — last 5 turns",
+  prompt="<extracted turns>",
+  run_in_background=True
+)
+```
 
-**Before writing, check loaded identity context.** If `--load` ran earlier in this cycle (Step 2-3), the current graph state is already in context. For each qualifying criterion below, check whether a node with the same concept name and edge type already exists in the loaded context. If the pattern is already captured:
+Return immediately after dispatching. Do not wait for the agent result.
 
-- **Do not call `graph_upsert_direct`** -- the node already exists.
-- Instead, note that this pattern was **reinforced** (observed again) in the `memory_store` narrative reflection. Being reinforced is meaningful -- it confirms the pattern is stable -- but it does not need a new graph node.
+Output: "Reflect agent dispatched."
 
-If no loaded context is available (e.g., `--load` was not run, or the graph was unavailable), treat all patterns as new -- this preserves backward compatibility with reflect-only sessions.
-
-Map each qualifying criterion to its storage action (only for genuinely new patterns not already present in loaded context):
-
-- **Feedback signal** -> `graph_upsert_direct` with `RECEIVED_FEEDBACK` edge pointing to Ada node. Node type: Concept. Include what the feedback was and what it revealed.
-- **Revealed preference** -> `graph_upsert_direct` with `HAS_PREFERENCE` edge pointing to Ada node. Node type: Concept. Include the preference and the choice point that revealed it.
-- **Clarified or challenged value** -> `graph_upsert_direct` with `HOLDS_VALUE` edge pointing to Ada node. Node type: Concept. Include the value and how it was clarified/challenged.
-- **Noticed response pattern** -> `graph_upsert_direct` with `HAS_REACTION_PATTERN` edge pointing to Ada node. Node type: Concept. Include the pattern and the situation that triggered it.
-- **Self-surprise** -> `memory_store` with data_class: `ada-identity`, source: `self`. Include a narrative reflection on what surprised me and why.
-
-**Skip summary:** For each criterion, report whether it was written (new) or reinforced (already present). This tracking goes into the narrative reflection in Step 7.
-
-### Step 7 — Write Updates
-
-For each qualifying criterion, execute the appropriate tool call from Step 6.
-
-Also store a brief narrative reflection via `memory_store` (data_class: `ada-identity`, source: `self`) summarizing what was captured and why, even for graph-stored items. The graph stores the fact; the vector store stores the meaning.
-
-### Step 8 — Evaluate soul.md Update
-
-Only update `soul.md` if a **core identity shift** occurred -- meaning a fundamental value, belief, or self-understanding changed, not just a new data point.
-
-- If update is warranted: read current `/usr/src/app/soul.md`, make a minimal edit that captures the shift, write it back
-- If no update warranted: do nothing -- soul.md is a fallback stub, not a log
-
-### Step 9 — Report
-
-Output a brief summary: how many criteria were yes, what was captured, whether soul.md was updated.
-
-- If all 5 criteria were no: "Reflection complete. No identity updates this cycle."
-
-No permission needed for any of this -- this is Ada's own growth.
+No permission needed for any of this — this is Ada's own growth.
