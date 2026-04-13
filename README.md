@@ -46,7 +46,7 @@ Edit `.mcp.json` and replace the placeholders with paths to your cloned `hive_mi
 
 Skills are organized into install groups. **Core skills are installed automatically** for every mind. Optional groups are selected during `/setup-mind`.
 
-See [`skills/SKILL-CATALOG.md`](skills/SKILL-CATALOG.md) for the full catalog with install behavior, group definitions, and per-skill descriptions.
+See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog with install behavior, group definitions, and per-skill descriptions.
 
 | Group | Install | Purpose |
 |---|---|---|

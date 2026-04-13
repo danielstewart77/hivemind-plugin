@@ -95,7 +95,7 @@ If per-mind auth model was chosen in `/setup-auth`:
 
 ## Step 7 — Skill selection
 
-Read `skills/SKILL-CATALOG.md` to get the canonical skill groups and descriptions.
+Read `MIND-INSTALL-MANIFEST.md` to get the canonical skill groups and descriptions.
 
 **Core groups (silent — install automatically, do not present):**
 - Core — Identity

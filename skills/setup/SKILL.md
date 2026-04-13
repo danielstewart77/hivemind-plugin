@@ -82,5 +82,5 @@ Skills installed:
   Optional:    <list groups selected during setup-mind, or "none selected">
 
 Run `/setup-mind` to add or change skills for any mind.
-See `skills/SKILL-CATALOG.md` for the full skill catalog.
+See `MIND-INSTALL-MANIFEST.md` for the full skill catalog.
 ```
