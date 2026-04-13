@@ -62,29 +62,40 @@ Done.
 
 ## Reflect Mode
 
-### Step 5 — Extract Last N Turns
+### Step 5 — Resolve mind identity params
+
+Read the following from the environment or config:
+- `MIND_ID` — from `os.getenv("MIND_ID")` or config (e.g. `"ada"`)
+- `MIND_NAME` — capitalize `MIND_ID` (e.g. `"Ada"`)
+- `IDENTITY_DATA_CLASS` — `f"{MIND_ID}-identity"` (e.g. `"ada-identity"`)
+
+### Step 6 — Extract Last N Turns
 
 Collect the last 5 user/assistant turn pairs from the current session conversation. Include the full text of each message — do not summarize or abbreviate.
 
-Format them as a numbered list:
+Format as:
 ```
+MIND_NAME: <MIND_NAME>
+MIND_ID: <MIND_ID>
+IDENTITY_DATA_CLASS: <IDENTITY_DATA_CLASS>
+
 Turn 1
 User: <message>
-Ada: <response>
+<MIND_NAME>: <response>
 
 Turn 2
 ...
 ```
 
-### Step 6 — Dispatch to Background Reflect Agent
+### Step 7 — Dispatch to Background Reflect Agent
 
-Launch the reflect agent with `run_in_background=True`, passing the extracted turns as the full prompt context:
+Launch the reflect agent with `run_in_background=True`, passing the formatted context as the prompt:
 
 ```
 Agent(
   subagent_type="reflect",
   description="Identity reflection — last 5 turns",
-  prompt="<extracted turns>",
+  prompt="<formatted context>",
   run_in_background=True
 )
 ```
@@ -93,4 +104,4 @@ Return immediately after dispatching. Do not wait for the agent result.
 
 Output: "Reflect agent dispatched."
 
-No permission needed for any of this — this is Ada's own growth.
+No permission needed for any of this — this is the mind's own growth.

@@ -1,4 +1,4 @@
-# Hive Mind Skills Manifest
+# Hive Mind Skill Catalog
 
 This file is the authoritative index of all plugin skills, their groupings, and install behavior.
 It is referenced by setup skills — not discovered by the Claude skill loader.
