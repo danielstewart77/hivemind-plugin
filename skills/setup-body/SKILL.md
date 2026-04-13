@@ -116,17 +116,57 @@ Which components would you like to set up? (comma-separated numbers, or 'all')
 
 ### Voice (7)
 
-**Voice server:**
-- Detect hardware profile (GPU or CPU-only).
-- If GPU: "GPU detected. Voice server will use GPU-accelerated models (faster inference, larger models)."
-- If CPU-only: "No GPU detected. Voice server will use CPU-only models (smaller Whisper model, CPU-friendly TTS). Inference will be slower but functional."
-- Present the tradeoff and let user confirm.
-- Deploy with appropriate config:
+**Step 1 — Choose TTS provider:**
+
+```
+Voice options:
+  a) None          — text-only, no voice output (can add later)
+  b) Chatterbox    — local GPU-accelerated TTS (ResembleAI, high quality, requires GPU)
+  c) External TTS  — bring your own TTS API endpoint
+```
+
+Ask the user which option they want. This can always be changed later.
+
+**If None (a):**
+- Set `tts_provider: none` in config.yaml.
+- "Voice skipped. You can add it later by running /setup-body and selecting option 7."
+- Done — skip to step 5.
+
+**If Chatterbox (b):**
+- Detect hardware:
   ```bash
-  docker compose --profile ${COMPOSE_PROFILES:-cpu-only} up -d voice-server
+  nvidia-smi > /dev/null 2>&1 && echo "GPU available" || echo "No GPU detected"
   ```
-- Verify STT: test endpoint
-- Verify TTS: test endpoint
+- If no GPU: warn — "Chatterbox requires a CUDA GPU. CPU inference is possible but very slow. Continue anyway? (yes/no)"
+- Ask for a reference audio clip (10–30s WAV, clear speech, no background noise):
+  - If user has one: ask for the path, copy to `voice_ref/ada.wav`
+  - If not: "You can add a voice reference later. A default will be used for now."
+- Ask for the voice ID to use (default: `ada`). Store as `VOICE_ID` in keyring.
+- Set `tts_provider: chatterbox` in config.yaml.
+- Deploy voice server:
+  ```bash
+  docker compose up -d --build voice-server
+  ```
+- Verify:
+  ```bash
+  curl -sf http://localhost:8422/health && echo "Voice server healthy"
+  ```
+
+**If External TTS (c):**
+- Ask for the TTS API endpoint URL (e.g. `https://tts.example.com/synthesize`)
+- Ask for the API key (if required). Store in keyring as `TTS_API_KEY`.
+- Ask for the expected request format:
+  - OpenAI-compatible (`POST /audio/speech` with `{"model": ..., "input": ..., "voice": ...}`)
+  - Custom JSON (ask user to describe the payload format)
+- Set in config.yaml:
+  ```yaml
+  tts_provider: external
+  tts_endpoint: <url>
+  tts_format: openai  # or: custom
+  ```
+- Test the endpoint with a short phrase: "Hello, I am Ada."
+- If test succeeds: "External TTS configured and verified."
+- If test fails: show error, offer to retry or skip.
 
 ### External Integrations (8-11)
 
