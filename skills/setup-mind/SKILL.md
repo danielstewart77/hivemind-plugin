@@ -9,17 +9,34 @@ tools: Bash, Read
 
 Set up minds for the system. At least one mind is needed.
 
+## Step 0 — Topology selection
+
+Ask the user which deployment topology they want:
+
+1. **Federated (recommended)** — Minds run as containers routed through the main Hive Mind gateway and broker. Supports multi-mind conversations, group chat, inter-mind messaging, and memory. Requires the full server stack (nervous system already running).
+2. **Standalone** — A single mind with a minimal container stack. No gateway dependency, no broker, no inter-mind features. Best for a first install or a dedicated single-purpose mind.
+3. **Remote Federated** — A second Hive Mind instance on another machine, linked to this one via the broker API. Delegates to `/setup-remote`.
+
+> **Warning (Standalone):** If this is your first mind and you choose standalone, you will not be able to use multi-mind features (group chat, inter-mind messaging, orchestrator). Federated is recommended unless you have a specific reason to stay isolated.
+
+Store the topology as `TOPOLOGY` (values: `federated`, `standalone`, `remote`). All subsequent steps branch on this value.
+
+**If `remote`:** delegate to `/setup-remote` and exit this skill.
+
 ## Step 1 — Prerequisite check
 
+**If `federated`:**
 ```bash
 curl -sf http://localhost:8420/sessions > /dev/null || echo "Gateway not reachable. Run /setup-nervous-system first."
 curl -sf http://localhost:8420/broker/minds | jq length
 ```
-
 Verify at least one provider is configured (check config.yaml providers block).
+
+**If `standalone`:** Skip gateway check — broker is not required. Verify Docker is running.
 
 ## Step 2 — List current minds
 
+**If `federated`:**
 ```bash
 # Registered minds
 curl -sf http://localhost:8420/broker/minds | jq -r ".[].name"
@@ -35,6 +52,8 @@ for d in minds/*/; do
 done
 ```
 
+**If `standalone`:** Skip broker listing — no broker running yet.
+
 ## Step 3 — Present options
 
 1. **Create a new mind from template** → delegates to `/create-mind`
@@ -46,7 +65,7 @@ done
 
 ## Step 4 — Execute
 
-Delegate to the appropriate skill based on user choice.
+Delegate to the appropriate skill based on user choice. Pass `--standalone` flag to `/create-mind` and `/add-mind` if `TOPOLOGY=standalone`.
 
 ## Step 5 — Per-mind volume config
 

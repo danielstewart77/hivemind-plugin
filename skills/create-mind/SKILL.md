@@ -1,13 +1,16 @@
 ---
 name: create-mind
 description: Create a new mind from a template. Scaffolds MIND.md and implementation.py, then registers with the broker. Use when the user wants to add a brand-new mind to the system.
-argument-hint: "[name]"
+argument-hint: "[name] [--standalone]"
 user-invocable: true
 ---
 
 # create-mind
 
 `$ARGUMENTS[0]` = mind name. Ask if missing.
+`$ARGUMENTS[1]` = `--standalone` if creating a standalone (non-federated) mind. Default: federated.
+
+Set `STANDALONE=true` if `--standalone` is present.
 
 ## Step 1 — Gather info
 
@@ -57,12 +60,30 @@ If yes:
 If no:
 - The mind runs as a subprocess inside the main hive_mind container (default)
 
-## Step 5 — Register
+## Step 5 — Register or Generate Standalone Compose
 
+**If federated:**
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
 
-## Step 5 — Report
+**If standalone:**
+Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml` with only the mind container and a lightweight message handler. No broker, no gateway, no Neo4j.
+
+After compose generation:
+```bash
+docker compose up -d --build
+```
+
+Confirm the mind container is running:
+```bash
+docker compose ps
+```
+
+Note: standalone minds cannot be registered with the broker. Skip the broker registration step entirely.
+
+## Step 6 — Report
 
 - Template used
+- Topology: federated or standalone
 - Files created
-- Registration and routability status
+- Registration and routability status (federated only)
+- Container status (standalone)
