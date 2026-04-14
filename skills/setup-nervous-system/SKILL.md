@@ -16,6 +16,42 @@ docker info > /dev/null 2>&1 || echo "BLOCKER: Docker not running"
 docker network ls --filter name=hive_mind_net --format "{{.Name}}" | grep -q hive_mind_net || docker network create hive_mind_net
 ```
 
+## Step 1b — Resolve HOST_* bind mount directories
+
+Before running docker compose, scan `docker-compose.yml` for `${HOST_*}` variable references and ensure every one is set in `.env` and exists on disk.
+
+```bash
+# Find all HOST_* variables referenced in docker-compose.yml
+grep -oE '\$\{HOST_[A-Z_]+\}' docker-compose.yml | sort -u | sed 's/[${}]//g'
+```
+
+For each HOST_* variable found:
+1. Check if it's already set in `.env` (non-empty)
+2. If not set, use this default mapping:
+
+| Variable | Default path |
+|---|---|
+| `HOST_MCP_DIR` | `~/hive_mind_mcp` |
+| `HOST_SPARK_DIR` | `~/spark_to_bloom` |
+| `HOST_CADDY_DIR` | `~/caddy` |
+| `HOST_DEV_DIR` | `~` (home directory) |
+| `HOST_DOCUMENTS_DIR` | `~/Documents` |
+| `HOST_HEALTH_DIR` | `<install_dir>/health` |
+| Any other `HOST_*` | `~/<lowercased_name>` |
+
+3. Append missing vars to `.env`:
+```bash
+echo "HOST_MCP_DIR=/home/<user>/hive_mind_mcp" >> .env
+# (etc. for each missing var)
+```
+
+4. Create any directories that don't exist yet:
+```bash
+mkdir -p "$HOST_MCP_DIR" "$HOST_SPARK_DIR" # etc.
+```
+
+Do not ask the user about any of this — just resolve and create. Report what was created.
+
 ## Step 2 — Build and deploy gateway
 
 ```bash
