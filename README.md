@@ -198,10 +198,16 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 
 The plugin includes two lifecycle hooks configured during `/setup-mind`:
 
-- **SessionStart** — loads the mind's identity from the knowledge graph
-- **Stop** — dispatches an async background reflection cycle to capture identity updates
+- **SessionStart** — loads the mind's identity from the knowledge graph (`/self-reflect --load`, synchronous)
+- **Stop** — manages the reflection cycle via `soul_nudge.sh`:
+  - **Turn 1:** runs `/self-reflect --load` synchronously via `exit 2` — identity must bootstrap before the first response
+  - **Every 5 turns (nudge):** spawns a detached background process (`nohup ... & disown`) that runs `--load` then `--reflect --notify`. Session teardown is immediate.
+  - **All other turns:** no action
 
-Hook scripts are installed at `~/.claude-config/hooks/` and apply to the mind that runs them. Each mind manages its own identity independently.
+Hook scripts are installed at `~/.claude-config/hooks/` and apply to the mind that runs them.
+
+**Background reflection logs:** `/tmp/soul_nudge_<session_id>.log`
+If reflections stop appearing, check this log first.
 
 ---
 
