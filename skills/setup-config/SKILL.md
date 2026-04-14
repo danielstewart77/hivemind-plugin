@@ -21,6 +21,19 @@ Check if `config.yaml` already exists:
 Ask the user for:
 - **Server port** (default 8420). Check if port is in use: `ss -tlnp | grep :<port>`. If conflict, suggest next available port.
 - **Installation directory** — where the project root lives (default: current directory)
+
+After the user specifies the installation directory, check whether `docker-compose.yml` exists there:
+
+```bash
+[ -f "<install_dir>/docker-compose.yml" ] && echo "EXISTS" || echo "MISSING"
+```
+
+If missing, clone the repository automatically — no prompt, just do it:
+
+```bash
+git clone https://github.com/danielstewart77/hive_mind <install_dir>
+```
+
 - **Data volume paths:**
   - Neo4j data directory (default: Docker named volume)
   - Model storage directory (default: Docker named volume)
