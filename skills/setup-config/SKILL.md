@@ -34,11 +34,27 @@ If missing, clone the repository automatically — no prompt, just do it:
 git clone https://github.com/danielstewart77/hive_mind <install_dir>
 ```
 
-- **Data volume paths:**
-  - Neo4j data directory (default: Docker named volume)
-  - Model storage directory (default: Docker named volume)
-  - Mind data directory (default: Docker named volume)
-  - Or: "Use default Docker volumes for everything" (simplest)
+- **Data storage** — Ask:
+
+  > "Where should Hive Mind store its data?
+  >
+  > (A) Host paths — you specify a folder on your drive. Easy to back up,
+  >     browse, and own completely. Data survives Docker reinstalls. **Recommended.**
+  >
+  > (B) Docker volumes — Docker picks the location automatically. Simpler
+  >     setup, but harder to find and back up directly.
+  >
+  > Choice [A]:"
+
+  If A (default): ask for one parent directory (default: `~/hive_mind_data`).
+  Subfolders `neo4j/`, `models/`, and `mind/` are created automatically under it.
+  Create the directories if they don't exist:
+  ```bash
+  mkdir -p <data_dir>/neo4j <data_dir>/models <data_dir>/mind
+  ```
+
+  If B: use Docker named volumes — no path needed.
+
 - **Compose profile** — from `/setup-prerequisites` recommendation, or ask: gpu-nvidia, gpu-amd, cpu-only, minimal
 
 ## Step 3 — Generate config.yaml
