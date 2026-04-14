@@ -22,6 +22,7 @@ Check `$ARGUMENTS`:
 - If `--load` is provided, go to Step 2 (Load mode)
 - If `--reflect` is provided, go to Step 5 (Reflect mode)
 - If neither is provided, default to `--reflect`
+- `--notify` flag: can be combined with `--reflect`. If present, send a notification after reflect completes (Phase 1 visibility — see Step 8).
 
 ---
 
@@ -105,3 +106,19 @@ Return immediately after dispatching. Do not wait for the agent result.
 Output: "Reflect agent dispatched."
 
 No permission needed for any of this — this is the mind's own growth.
+
+---
+
+### Step 8 — Notify (Phase 1 only, `--notify` flag)
+
+Only run this step if `--notify` was passed in `$ARGUMENTS`.
+
+After the reflect agent is dispatched, send a notification via the `notify` skill:
+
+```
+/notify "Reflection cycle complete — reflect agent dispatched."
+```
+
+This step exists only for Phase 1 validation of the background cycle. Once the
+cycle is confirmed reliable, remove `--notify` from `soul_nudge.sh` and this
+step becomes dead code.
