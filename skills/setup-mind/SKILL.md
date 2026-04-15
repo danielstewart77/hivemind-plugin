@@ -112,13 +112,15 @@ Auth was configured in `create-mind` Step 1c. Verify it worked:
 
 ```bash
 docker exec hive-mind-<name> sh -c \
-  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config claude --output-format stream-json --verbose -p "say hi" 2>&1' \
+  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config $(which claude) --output-format stream-json --verbose --dangerously-skip-permissions -p "say hi" 2>&1' \
   | python3 -c "import sys,json; [print(o.get('result','')) for l in sys.stdin for o in [json.loads(l)] if o.get('type')=='result']"
 ```
 
 If it returns a response → auth OK, continue.
-If "Not logged in" → auth was not applied correctly. Go back to create-mind Step 1c
-and re-apply the token or key.
+If "Not logged in" → `.credentials.json` was not copied. Return to `create-mind` Step 1c
+and copy BOTH `.claude.json` AND `.credentials.json` from `${CLAUDE_CONFIG_DIR}`.
+If "claude: not found" → find the binary: `docker exec hive-mind-<name> which claude`
+and use the full path.
 
 ## Step 7 — Skill selection
 

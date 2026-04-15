@@ -64,7 +64,13 @@ How should <mind_name> authenticate?
 (A) Copy your OAuth token — no new login needed (recommended)
 (B) Use an API key instead
 ```
-If (A): `cp ${CLAUDE_CONFIG_DIR}/.claude.json minds/<name>/.claude/.claude.json`
+If (A):
+```bash
+cp ${CLAUDE_CONFIG_DIR}/.claude.json minds/<name>/.claude/.claude.json
+cp ${CLAUDE_CONFIG_DIR}/.credentials.json minds/<name>/.claude/.credentials.json
+```
+Claude Code stores OAuth tokens in `.credentials.json`, NOT `.claude.json`.
+Both files must be copied or auth will fail with "Not logged in."
 If (B): ask for key or check keyring; write to container env in MIND.md.
 
 If **API key found**:
