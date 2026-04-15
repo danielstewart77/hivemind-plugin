@@ -80,15 +80,28 @@ curl -sf https://api.anthropic.com/v1/models \
 
 ## Step 3 — OpenAI (if selected)
 
-Note: unlike Anthropic, OpenAI API access requires an API key — ChatGPT Plus/Pro
-subscriptions are for the chat interface only and do not include API access.
+Ask:
 
+> **How do you want to authenticate with OpenAI?**
+>
+> (A) OAuth — you have a ChatGPT Plus or Pro subscription. Log in with your
+>     OpenAI account. Cost is covered by your subscription.
+>
+> (B) API key — pay-per-token billing. Get your key at platform.openai.com/api-keys.
+>
+> Choice [A]:
+
+**If OAuth:**
+- No key needed. Add to config.yaml and note that auth happens during `/setup-mind`.
+```yaml
+providers:
+  openai:
+    env: {}
+```
+
+**If API key:**
 - Check for existing: `python3 -m keyring get hive-mind OPENAI_API_KEY 2>/dev/null`
-- If missing, ask:
-
-  > **OpenAI API key** — get yours at platform.openai.com/api-keys
-
-- Store: `python3 -m keyring set hive-mind OPENAI_API_KEY`
+- If missing, ask for it. Store: `python3 -m keyring set hive-mind OPENAI_API_KEY`
 - Verify:
 ```bash
 curl -sf https://api.openai.com/v1/models \
