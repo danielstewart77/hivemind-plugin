@@ -48,7 +48,18 @@ Which model?
 
 If Ollama (either harness): ask for the model name (e.g. `llama3`, `mistral`).
 
-**1c.** Ask for a brief identity/role description for the soul seed.
+**1c. Soul seed — ask these questions one at a time:**
+
+1. "What is Sergeant's role? What does it do — what problems does it solve?"
+2. "What is Sergeant's identity? How does it present itself — its personality,
+   tone, and character? (This is separate from what it does.)"
+3. "Would you like to write a backstory or manifesto for this character —
+   something that gives it history, values, or a point of view?"
+   - If yes: ask open-ended, let the user write as much or as little as they want.
+     Incorporate it into the soul seed.
+   - If no: skip. The soul seed will be built from name + role + identity alone.
+
+Do not tell the user to be brief. Let them say as much or as little as they want.
 
 ## Step 2 — Select template
 
