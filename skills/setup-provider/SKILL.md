@@ -80,21 +80,15 @@ curl -sf https://api.anthropic.com/v1/models \
 
 ## Step 3 — OpenAI (if selected)
 
-Ask:
+Note: unlike Anthropic, OpenAI API access requires an API key — ChatGPT Plus/Pro
+subscriptions are for the chat interface only and do not include API access.
 
-> **How do you want to authenticate with OpenAI?**
->
-> (A) API key — pay-per-token billing. Paste your key from platform.openai.com.
->     Note: ChatGPT Plus/Pro subscriptions do NOT include API access — API billing
->     is separate.
->
-> (B) Skip for now — configure later with `/setup-provider openai`.
->
-> Choice [A]:
-
-**If API key:**
 - Check for existing: `python3 -m keyring get hive-mind OPENAI_API_KEY 2>/dev/null`
-- If missing, ask for it. Store: `python3 -m keyring set hive-mind OPENAI_API_KEY`
+- If missing, ask:
+
+  > **OpenAI API key** — get yours at platform.openai.com/api-keys
+
+- Store: `python3 -m keyring set hive-mind OPENAI_API_KEY`
 - Verify:
 ```bash
 curl -sf https://api.openai.com/v1/models \
@@ -107,8 +101,6 @@ providers:
     env:
       OPENAI_API_KEY: "<from-keyring>"
 ```
-
-**If skip:** note it as not configured, continue.
 
 ## Step 4 — Azure OpenAI (if selected)
 
