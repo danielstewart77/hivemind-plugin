@@ -58,7 +58,7 @@ Otherwise ask:
 > Choice [A]:
 
 **If OAuth:**
-- No key needed. Add to config.yaml and note that each mind authenticates during `/setup-mind`.
+- No key needed. Add to config.yaml.
 ```yaml
 providers:
   anthropic: {}
@@ -67,6 +67,11 @@ models:
   opus: anthropic
   haiku: anthropic
 ```
+- Tell the user explicitly:
+  > "Anthropic OAuth preference recorded — **nothing is authenticated yet.**
+  > During /setup-mind, each mind container will need `claude login` run inside it.
+  > This opens a browser URL to authorize with your Anthropic account.
+  > Have a browser ready when you reach that step."
 
 **If API key:**
 - Check for existing: `python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null`
@@ -92,12 +97,16 @@ Ask:
 > Choice [A]:
 
 **If OAuth:**
-- No key needed. Add to config.yaml and note that auth happens during `/setup-mind`.
+- No key needed. Add to config.yaml.
 ```yaml
 providers:
   openai:
     env: {}
 ```
+- Tell the user explicitly:
+  > "OpenAI OAuth preference recorded — **nothing is authenticated yet.**
+  > During /setup-mind, each mind using OpenAI will need its auth flow completed
+  > inside the container. Have a browser ready when you reach that step."
 
 **If API key:**
 - Check for existing: `python3 -m keyring get hive-mind OPENAI_API_KEY 2>/dev/null`
