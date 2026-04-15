@@ -35,18 +35,30 @@ If `$ARGUMENTS[0]` is provided, skip to that provider directly.
 
 ## Step 2 — Anthropic (if selected)
 
-First, check the auth method recorded by setup-auth:
+First check the auth method recorded by setup-auth:
 ```bash
 python3 -c "
 import yaml
 cfg = yaml.safe_load(open('config.yaml'))
-print(cfg.get('auth', {}).get('method', 'api-key'))
+print(cfg.get('auth', {}).get('method', ''))
 "
 ```
 
-**If method is `oauth`:**
-- No API key needed — Claude Code authenticates per-mind via OAuth during `/setup-mind`
-- Just add Anthropic to config.yaml and move on:
+If auth method is already `oauth` or `api-key` from setup-auth, use that — skip the question below.
+
+Otherwise ask:
+
+> **How do you want to authenticate with Anthropic?**
+>
+> (A) OAuth — you have a Claude Pro or Max subscription. No API key needed.
+>     Claude Code will log in with your Anthropic account. Cost is covered by your plan.
+>
+> (B) API key — pay-per-token billing. Paste your key from console.anthropic.com.
+>
+> Choice [A]:
+
+**If OAuth:**
+- No key needed. Add to config.yaml and note that each mind authenticates during `/setup-mind`.
 ```yaml
 providers:
   anthropic: {}
@@ -55,38 +67,48 @@ models:
   opus: anthropic
   haiku: anthropic
 ```
-- Note to user: "Anthropic configured for OAuth. Each mind will authenticate individually during /setup-mind."
 
-**If method is `api-key` (or auth section missing):**
-- Check for existing key: `python3 -m keyring get hive-mind ANTHROPIC_API_KEY`
-- If missing, ask user for their Anthropic API key. Store it:
-```bash
-python3 -m keyring set hive-mind ANTHROPIC_API_KEY
-```
+**If API key:**
+- Check for existing: `python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null`
+- If missing, ask for it. Store: `python3 -m keyring set hive-mind ANTHROPIC_API_KEY`
 - Verify:
 ```bash
 curl -sf https://api.anthropic.com/v1/models \
-  -H "x-api-key: <key>" -H "anthropic-version: 2023-06-01" | jq ".data | length"
+  -H "x-api-key: <key>" -H "anthropic-version: 2023-06-01" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('data',[])),'models')"
 ```
 - Add to config.yaml as above.
 
 ## Step 3 — OpenAI (if selected)
 
-Check for existing key: `python3 tools/stateless/secrets/secrets.py get --key OPENAI_API_KEY`
+Ask:
 
-If missing, ask user. Store it. Verify:
+> **How do you want to authenticate with OpenAI?**
+>
+> (A) API key — pay-per-token billing. Paste your key from platform.openai.com.
+>     Note: ChatGPT Plus/Pro subscriptions do NOT include API access — API billing
+>     is separate.
+>
+> (B) Skip for now — configure later with `/setup-provider openai`.
+>
+> Choice [A]:
+
+**If API key:**
+- Check for existing: `python3 -m keyring get hive-mind OPENAI_API_KEY 2>/dev/null`
+- If missing, ask for it. Store: `python3 -m keyring set hive-mind OPENAI_API_KEY`
+- Verify:
 ```bash
 curl -sf https://api.openai.com/v1/models \
-  -H "Authorization: Bearer <key>" | jq ".data | length"
+  -H "Authorization: Bearer <key>" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('data',[])),'models')"
 ```
-
-Add to config.yaml:
+- Add to config.yaml:
 ```yaml
 providers:
   openai:
     env:
       OPENAI_API_KEY: "<from-keyring>"
 ```
+
+**If skip:** note it as not configured, continue.
 
 ## Step 4 — Azure OpenAI (if selected)
 
