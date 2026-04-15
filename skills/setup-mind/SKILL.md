@@ -112,31 +112,32 @@ If per-mind auth model was chosen in `/setup-auth`:
 
 **API key:** inject `ANTHROPIC_API_KEY` into the container env and verify with a test call.
 
-**OAuth:** Extract the login URL from the container and present it here — do NOT ask the
-user to open a separate terminal. Run the login command non-interactively, capture the URL:
+**OAuth:** OAuth for containerized minds requires an interactive terminal — the auth URL
+cannot be extracted non-interactively. Tell the user clearly, give them the exact command,
+and WAIT here for them to return. Do not skip. Do not move to the next step.
 
+Say exactly this:
+
+```
+Sergeant needs OAuth login. This requires a brief terminal step.
+
+Open a terminal on this machine and run:
+
+    docker exec -it hive-mind-sergeant claude
+
+A browser URL will appear. Open it, log in, and close the terminal.
+Then come back here and tell me when it's done.
+```
+
+When the user confirms, verify auth worked:
 ```bash
 docker exec hive-mind-<name> sh -c \
-  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config /home/hivemind/.local/bin/claude 2>&1 | head -20' \
-  | grep -o 'https://[^ ]*'
+  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config claude --output-format stream-json --verbose -p "say hi" 2>&1' \
+  | python3 -c "import sys,json; [print(o.get('result','')) for l in sys.stdin for o in [json.loads(l)] if o.get('type')=='result']"
 ```
 
-Present the URL to the user:
-```
-Sergeant needs to authorize with Anthropic. Please open this URL in your browser:
-
-  https://auth.anthropic.com/...
-
-Once you've completed the login, come back here and confirm.
-```
-
-Wait for the user to confirm. Then verify auth succeeded:
-```bash
-docker exec hive-mind-<name> sh -c \
-  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config /home/hivemind/.local/bin/claude --version 2>&1'
-```
-
-If auth is confirmed, continue. Do not skip this step.
+If it returns a response (not "Not logged in"), auth succeeded. Continue to Step 7.
+If it still says "Not logged in", ask the user to retry the terminal step.
 
 ## Step 7 — Skill selection
 
