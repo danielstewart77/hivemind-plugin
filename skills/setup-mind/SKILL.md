@@ -16,18 +16,20 @@ If `INSTALL_TYPE` was already set during `/setup` Step 0 (Question 2), skip this
 If running `/setup-mind` standalone (not via `/setup`), ask:
 
 ```
-What kind of Hive Mind install is this?
+What kind of install is this?
 
-(A) First instance — full install, this machine is the primary Hub
-(B) Federated second instance — own full stack, can also register minds from
-    other instances for cross-instance messaging
-(C) Hub-spoke (managed) — single mind managed by an existing Hive Mind instance
+(A) New instance — full Hive Mind, fully independent. During mind setup you
+    can optionally register minds from other Hive Mind instances so they can
+    message each other.
+
+(B) Hub-spoke (managed mind) — single mind managed by an existing Hive Mind
+    instance. No local gateway or broker.
 ```
 
-Store as `INSTALL_TYPE` (values: `first`, `federated`, `spoke`).
+Store as `INSTALL_TYPE` (values: `instance`, `spoke`).
 
 Do NOT delegate to `/setup-remote` here. That skill installs Hive Mind on a
-remote machine via SSH — it is not for configuring federation on this machine.
+remote machine via SSH — it is not for configuring local minds.
 
 ## Step 1 — Prerequisite check
 
@@ -61,20 +63,6 @@ done
 
 ## Step 3 — Add a mind
 
-Present the options that apply to this install type:
-
-**For `first` and `federated`:**
-```
-What would you like to do?
-
-1. Install a new mind from template — creates and deploys a new mind on this machine
-2. Install an existing local mind — registers a minds/ folder already on this machine
-3. Register a mind from another instance — no local install needed; just registers
-   the remote mind's broker endpoint so both instances can message each other.
-   You'll need: the mind's name, its host URL, and its broker endpoint.
-```
-
-**For `spoke`:**
 ```
 What would you like to do?
 
@@ -82,7 +70,7 @@ What would you like to do?
 2. Install an existing local mind — registers a minds/ folder already on this machine
 ```
 
-There is no skip option. Loop through Step 3 → Step 4 until the user says they are done.
+There is no skip option. After each mind is set up, ask "Would you like to add another mind?" and loop back here until the user says no.
 
 ## Step 4 — Execute the chosen option
 
@@ -90,19 +78,7 @@ There is no skip option. Loop through Step 3 → Step 4 until the user says they
 
 **Option 2 (existing local mind):** delegate to `/add-mind`
 
-**Option 3 (register from another instance):**
-- Ask for: mind name, host URL of the other instance (e.g. `http://192.168.4.64:8420`), and broker endpoint
-- Register with the local broker:
-  ```bash
-  curl -s -X POST http://localhost:8420/broker/minds \
-    -H "Content-Type: application/json" \
-    -d "{\"name\": \"<mind_name>\", \"host\": \"<host_url>\", \"broker_url\": \"<broker_endpoint>\"}"
-  ```
-- Verify: send a test ping via the broker and confirm the mind responds
-
 ## Step 5 — Per-mind volume config
-
-*(Skip for Option 3 — no local container)*
 
 Ask what host directories this mind should access:
 - Default Docker named volume (most isolated)
@@ -110,15 +86,11 @@ Ask what host directories this mind should access:
 
 ## Step 5b — Personality setup
 
-*(Skip for Option 3 — no local container)*
-
 Ask: "Would you like to define `<mind_name>`'s personality and seed its identity now?"
 - If yes → delegate to `/setup-personality <mind_id>`
 - If no → "You can run `/setup-personality <mind_id>` anytime."
 
 ## Step 6 — Per-mind auth
-
-*(Skip for Option 3 — auth is on the remote instance)*
 
 If per-mind auth model was chosen in `/setup-auth`:
 ```bash
@@ -127,8 +99,6 @@ docker exec -it <container-name> claude
 Or for API key: configure the key in the mind container env. Verify auth works.
 
 ## Step 7 — Skill selection
-
-*(Skip for Option 3 — skills are configured on the remote instance)*
 
 Read `MIND-INSTALL-MANIFEST.md` to get the canonical skill groups and descriptions.
 
@@ -165,22 +135,19 @@ Ask: "Would you like to add another mind?"
 - Yes → return to Step 3
 - No → proceed to Step 9
 
-## Step 9 — Broker federation (federated and spoke installs only)
+## Step 9 — Cross-instance mind contacts (optional)
 
-**If `federated`:**
-Ask: "Do you want to configure broker federation with another Hive Mind instance now?"
-- If yes: ask for the Hub's broker URL (e.g. `http://192.168.4.64:8420`)
-  - Register this instance with the Hub:
-    ```bash
-    curl -s -X POST http://<hub>/broker/minds \
-      -H "Content-Type: application/json" \
-      -d "{\"name\": \"<this_instance_name>\", \"host\": \"http://<this_ip>:8420\"}"
-    ```
-  - Verify cross-instance messaging works
-- If no → "You can configure federation later by re-running `/setup-mind`."
+For each mind just installed, ask:
 
-**If `spoke`:**
-Ask for the managing Hub's URL and register this mind with it (same as above).
+> "Does this mind need to message minds on another Hive Mind instance?"
+
+- If yes: ask for the name and gateway URL of each remote mind
+  (e.g. `ada` at `http://192.168.4.64:8420`). Store in the mind's config
+  so it can address messages to them.
+- If no: skip. This can be configured anytime by re-running `/setup-mind`.
+
+**If `spoke`:** ask for the managing instance's gateway URL and configure
+the mind to route through it.
 
 ## Step 10 — Final mind roster
 

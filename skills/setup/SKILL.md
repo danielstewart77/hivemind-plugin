@@ -42,31 +42,25 @@ through the session exactly as you would locally.
 ### Question 2 — What kind of install?
 
 ```
-What kind of Hive Mind install is this?
+What kind of install is this?
 
-(A) First instance — full install. Gateway, broker, Neo4j, minds, communication
-    surfaces — everything. This becomes your primary Hub. Choose this for any
-    new setup.
+(A) New instance — full Hive Mind install. Gateway, broker, Neo4j, minds,
+    communication surfaces — everything. Each Hive Mind instance is fully
+    independent. During mind setup you can optionally register minds from
+    other Hive Mind instances so they can message each other — but there is
+    no system-level link between instances. Choose this for any new machine.
 
-(B) Federated second instance — this machine gets its own full stack (gateway,
-    broker, Neo4j). Completely independent, but minds here can communicate with
-    minds on other instances via broker federation. When you get to the Minds
-    step you can install new minds locally OR register a mind from another
-    instance (no local install — just broker registration so they can message
-    each other).
-
-(C) Hub-spoke (managed) — a single mind on this machine, managed and routed
-    by an existing Hive Mind instance. That instance handles routing, memory,
-    and orchestration. No local gateway or broker needed.
+(B) Hub-spoke (managed mind) — a single mind on this machine, managed and
+    routed by an existing Hive Mind instance. No local gateway or broker
+    needed. The managing instance handles routing, memory, and orchestration.
 ```
 
-Store as `INSTALL_TYPE` (values: `first`, `federated`, `spoke`).
+Store as `INSTALL_TYPE` (values: `instance`, `spoke`).
 
-- **first**: run every step below in full.
-- **federated**: run every step below in full; at the Minds step, offer local install
-  AND cross-instance broker registration as options.
-- **spoke**: skip Nervous System and Neo4j; go straight to Config → Auth → Provider →
-  Mind (single mind only), then configure the connection back to the managing Hub.
+- **instance**: run every step below in full.
+- **spoke**: skip Nervous System and Neo4j; go straight to Config → Auth →
+  Provider → Mind (single mind only), then configure the connection to the
+  managing instance.
 
 ---
 
