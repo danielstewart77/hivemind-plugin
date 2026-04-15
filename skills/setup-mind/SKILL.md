@@ -109,10 +109,22 @@ Ask: "Would you like to define `<mind_name>`'s personality and seed its identity
 ## Step 6 — Per-mind auth
 
 If per-mind auth model was chosen in `/setup-auth`:
-```bash
-docker exec -it <container-name> claude
+
+**API key:** inject `ANTHROPIC_API_KEY` into the container env and verify with a test call.
+
+**OAuth:** do NOT ask the user to open a separate terminal. OAuth requires a browser — defer
+it and note it clearly:
+
 ```
-Or for API key: configure the key in the mind container env. Verify auth works.
+⚠ Sergeant needs OAuth login before it can process requests.
+  After setup completes, run this once on the host:
+
+    docker exec -it hive-mind-sergeant claude
+
+  Complete the browser login, then Sergeant is ready.
+```
+
+Continue with the next step immediately — do not wait for auth to complete.
 
 ## Step 7 — Skill selection
 
