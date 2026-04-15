@@ -10,68 +10,63 @@ tools: Bash, Read
 
 Master setup wizard. Run `/setup all` for full onboarding or `/setup <component>` for a specific step.
 
-## Step 0 — Local or Remote?
+## Step 0 — Where and what kind of install?
 
-**This is the first question. Ask it before anything else.**
+**These are the first two questions. Ask them before anything else.**
+
+### Question 1 — Local or Remote?
 
 ```
 Where do you want to install Hive Mind?
 
-(A) This machine  — install locally (you are already on the target host)
+(A) This machine  — you are already on the target host
 (B) Remote machine — install on another machine via SSH
 ```
 
-**If (B) Remote:**
-Ask:
-- IP or hostname of the target machine
-- SSH port (default: 22)
-- Username on that machine
+**If (B) Remote:** collect the target machine's host, SSH port (default 22), and username.
+Then open a remote-admin session:
 
-Connect via remote-admin:
 ```bash
 TOKEN=$(python3 -m keyring get hive-mind remote_admin_token)
+PKEY=$(python3 -m keyring get hive-mind remote_admin_ssh_key_default)
 SID=$(curl -s -X POST http://hive-mind-remote-admin:8430/sessions \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d "{\"host\":\"<host>\",\"port\":22,\"username\":\"<user>\",\"private_key\":\"$(python3 -m keyring get hive-mind remote_admin_ssh_key_default)\"}" \
+  -d "{\"host\":\"<host>\",\"port\":22,\"username\":\"<user>\",\"private_key\":\"$PKEY\"}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['session_id'])")
 ```
 
-Then run setup on the remote machine via the session:
-```bash
-curl -s -X POST http://hive-mind-remote-admin:8430/sessions/$SID/exec \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"command": "CLAUDE_CONFIG_DIR=~/.claude-config claude --dangerously-skip-permissions -p \"/setup all\"", "timeout": 3600}' | ...
-```
+All remaining questions and setup steps (including Question 2 below) apply to the remote
+machine and are executed via `exec` calls on that session. Relay each question and answer
+through the session exactly as you would locally.
 
-All subsequent setup steps run on the remote machine. This skill exits after confirming the remote session is running.
-
-**If (A) Local — continue below.**
-
----
-
-## Step 0b — Topology (local installs only)
+### Question 2 — What kind of install?
 
 ```
-Is this the first Hive Mind instance, or does a Hub already exist?
+What kind of Hive Mind install is this?
 
-(A) Hub (first install, recommended) — This machine IS the Hub. Runs the full
-    stack: gateway, broker, Neo4j, all infrastructure. Every other instance
-    connects here.
+(A) First instance — full install. Gateway, broker, Neo4j, minds, communication
+    surfaces — everything. This becomes your primary Hub. Choose this for any
+    new setup.
 
-(B) Spoke — Connect this machine to an existing Hub. Minds here route through
-    the Hub's gateway and broker. Requires a running Hub — without one, this
-    gives you no working system.
+(B) Federated second instance — this machine gets its own full stack (gateway,
+    broker, Neo4j). Completely independent, but minds here can communicate with
+    minds on other instances via broker federation. When you get to the Minds
+    step you can install new minds locally OR register a mind from another
+    instance (no local install — just broker registration so they can message
+    each other).
 
-(C) Remote Hub — A second independent Hive Mind instance on this machine,
-    linked to an existing Hub via the broker API. Both run full stacks but
-    share messaging.
+(C) Hub-spoke (managed) — a single mind on this machine, managed and routed
+    by an existing Hive Mind instance. That instance handles routing, memory,
+    and orchestration. No local gateway or broker needed.
 ```
 
-Store the answer as `TOPOLOGY` (values: `hub`, `spoke`, `remote-hub`). This is used by later steps.
+Store as `INSTALL_TYPE` (values: `first`, `federated`, `spoke`).
 
-- **Hub**: proceed with full setup — all steps below apply.
-- **Spoke**: skip Nervous System (no local gateway/broker needed), skip Neo4j. Go straight to Providers → Body → Mind, then configure the broker link to the Hub at the end.
-- **Remote Hub**: run full setup (same as Hub), then configure broker federation with the existing Hub at the end of Step 3.
+- **first**: run every step below in full.
+- **federated**: run every step below in full; at the Minds step, offer local install
+  AND cross-instance broker registration as options.
+- **spoke**: skip Nervous System and Neo4j; go straight to Config → Auth → Provider →
+  Mind (single mind only), then configure the connection back to the managing Hub.
 
 ---
 
