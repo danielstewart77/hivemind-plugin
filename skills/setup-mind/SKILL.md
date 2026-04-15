@@ -13,11 +13,11 @@ Set up minds for the system. At least one mind is needed.
 
 Ask the user which deployment topology they want:
 
-1. **Federated (recommended)** — Minds run as containers routed through the main Hive Mind gateway and broker. Supports multi-mind conversations, group chat, inter-mind messaging, and memory. Requires the full server stack (nervous system already running).
-2. **Standalone** — A single mind with a minimal container stack. No gateway dependency, no broker, no inter-mind features. Best for a first install or a dedicated single-purpose mind.
-3. **Remote Federated** — A second Hive Mind instance on another machine, linked to this one via the broker API. Delegates to `/setup-remote`.
+1. **Hub (recommended for first install)** — This machine is the primary Hive Mind instance. Runs the full stack: gateway, broker, all infrastructure. All minds, memory, and communication surfaces live here. Set this up first — every spoke and remote hub connects to a Hub.
+2. **Spoke (connect to existing Hub)** — This machine's minds route through an existing Hub's gateway and broker. No local gateway needed. **Requires a running Hub — without one, selecting this leaves you with no working system.**
+3. **Remote Hub (second independent instance)** — A fully independent Hive Mind instance on this machine, linked to an existing Hub via the broker API. Both run their own full stacks but share messaging and can delegate across machines.
 
-> **Warning (Standalone):** If this is your first mind and you choose standalone, you will not be able to use multi-mind features (group chat, inter-mind messaging, orchestrator). Federated is recommended unless you have a specific reason to stay isolated.
+> **Note (Spoke):** The Spoke topology is a hub-and-spoke model. This machine is the spoke — it connects into a central Hub. If you don't have a Hub already running somewhere, choose Hub first.
 
 Store the topology as `TOPOLOGY` (values: `federated`, `standalone`, `remote`). All subsequent steps branch on this value.
 
