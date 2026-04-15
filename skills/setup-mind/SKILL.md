@@ -112,19 +112,31 @@ If per-mind auth model was chosen in `/setup-auth`:
 
 **API key:** inject `ANTHROPIC_API_KEY` into the container env and verify with a test call.
 
-**OAuth:** do NOT ask the user to open a separate terminal. OAuth requires a browser — defer
-it and note it clearly:
+**OAuth:** Extract the login URL from the container and present it here — do NOT ask the
+user to open a separate terminal. Run the login command non-interactively, capture the URL:
 
-```
-⚠ Sergeant needs OAuth login before it can process requests.
-  After setup completes, run this once on the host:
-
-    docker exec -it hive-mind-sergeant claude
-
-  Complete the browser login, then Sergeant is ready.
+```bash
+docker exec hive-mind-<name> sh -c \
+  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config /home/hivemind/.local/bin/claude 2>&1 | head -20' \
+  | grep -o 'https://[^ ]*'
 ```
 
-Continue with the next step immediately — do not wait for auth to complete.
+Present the URL to the user:
+```
+Sergeant needs to authorize with Anthropic. Please open this URL in your browser:
+
+  https://auth.anthropic.com/...
+
+Once you've completed the login, come back here and confirm.
+```
+
+Wait for the user to confirm. Then verify auth succeeded:
+```bash
+docker exec hive-mind-<name> sh -c \
+  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config /home/hivemind/.local/bin/claude --version 2>&1'
+```
+
+If auth is confirmed, continue. Do not skip this step.
 
 ## Step 7 — Skill selection
 
