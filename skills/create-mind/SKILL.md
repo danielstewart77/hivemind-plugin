@@ -50,13 +50,24 @@ Which model?
 
 If Ollama: ask for the model name (e.g. `llama3`, `mistral`).
 
-**1c. Authentication (Claude harness only — skip for Codex/Ollama-only):**
+**1c. Authentication:**
 
-Detect what the host is currently using:
+**If model is Ollama** (regardless of harness — Claude CLI or SDK):
+Do NOT copy OAuth files. Instead, inject these env vars into the container block in MIND.md:
+```yaml
+environment:
+  ANTHROPIC_AUTH_TOKEN: "ollama"
+  ANTHROPIC_BASE_URL: "http://<ollama-host>:11434"
+```
+Ask: "What is the Ollama server address?" (e.g. `http://192.168.4.64:11434`). No OAuth or API key needed. Skip to Step 1d.
+
+**If model is a Claude model** (sonnet/opus/haiku), detect what the host is currently using:
 ```bash
 python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null && echo "has-api-key" || echo "no-api-key"
 ls ${CLAUDE_CONFIG_DIR:-~/.claude-config}/.claude.json 2>/dev/null && echo "has-oauth" || echo "no-oauth"
 ```
+
+**If Codex harness**: skip this step entirely — Codex uses its own auth.
 
 If **OAuth token found**:
 ```
