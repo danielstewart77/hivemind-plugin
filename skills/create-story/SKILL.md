@@ -33,7 +33,7 @@ tools: Read, Write
 
 1. **Get title.** Use `$ARGUMENTS` if provided, otherwise ask.
 
-2. **Determine column.** Default: Backlog. Ask if it should go directly to In Progress.
+2. **Determine column.** Ask: "Should this go to In Progress (ready to work) or Backlog (not yet ready)?" Default: **In Progress** if it will be worked soon; Backlog only if explicitly deferred.
 
 3. **Determine label.** Ask: Ada, {{USER}}, or Low priority? Default: Ada for autonomous work, {{USER}} for things requiring host access or human decisions.
 
@@ -53,17 +53,40 @@ tools: Read, Write
 
    If the spec already exists, verify it covers all the above. If not, fill in the gaps.
 
-6. **Write card description.** Include:
-   - Overview (1-2 sentences)
-   - Reference the spec: `Full spec: \`specs/<filename>.md\``
-   - Components or scope (bulleted)
-   - Key user acceptance criteria (summarized)
+6. **Write card description.** Keep it short — the spec is the source of truth. Include:
+   - One sentence overview
+   - `Full spec: specs/<filename>.md` — link to the file, do NOT summarize the spec content here
+
+   Do NOT copy acceptance criteria or implementation details into the card description. The overnight pipeline reads the spec file directly.
 
 7. **Create card.** Call `planka_create_card` with list_id, name, description.
 
-8. **Assign label.** Call `planka_assign_label` with card_id and label_id.
+8. **Assign label.** Call `planka_assign_label` with card_id and label_id (Ada label ID is `{{PLANKA_ADA_LABEL_ID}}`).
 
-9. **Confirm.** Report the card title, column, and label assignment.
+9. **Assign card member.** If label is Ada, also add Ada as a card member so the card appears in Ada's assignment view (separate from the label):
+
+```bash
+PLANKA_TOKEN=$(python3 /usr/src/app/tools/stateless/planka/planka.py list-projects 2>/dev/null \
+  | python3 -c "import sys,json; print(json.load(sys.stdin))" 2>/dev/null || true)
+# Use the API directly — planka.py does not have a card-memberships command
+curl -sf -X POST "http://planka:1337/api/cards/<card_id>/card-memberships" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PLANKA_AUTH_TOKEN" \
+  -d '{"userId":"{{PLANKA_ADA_USER_ID}}"}'
+```
+
+Simpler: use the Python venv directly:
+```bash
+python3 -c "
+import requests, subprocess
+planka_pass = subprocess.run(['grep','PLANKA_ADMIN_PASSWORD','/usr/src/app/.env'],capture_output=True,text=True).stdout.strip().split('=',1)[1]
+token = requests.post('http://planka:1337/api/access-tokens', json={'emailOrUsername':'daniel.stewart77@gmail.com','password':planka_pass}).json()['item']
+r = requests.post('http://planka:1337/api/cards/<card_id>/card-memberships', json={'userId':'{{PLANKA_ADA_USER_ID}}'}, headers={'Authorization':f'Bearer {token}'})
+print(r.status_code)
+"
+```
+
+10. **Confirm.** Report: card title, column, label, and assignee.
 
 ## Naming Convention
 

@@ -120,6 +120,18 @@ Present labels. Ask the user to identify which label is Ada's, which is their ow
 
 Store: `ADA_LABEL_ID`, `OWNER_LABEL_ID`, `LOW_PRIORITY_LABEL_ID`.
 
+### 4e — Discover Ada user ID
+
+The `create-story` skill needs Ada's Planka user ID (not label ID — the user account ID) to assign Ada as a card member. Look it up from the board's included users:
+
+```bash
+curl -sf "http://planka:1337/api/boards/$BOARD_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f\"{u['name']}: {u['id']}\") for u in d.get('included',{}).get('users',[])]"
+```
+
+Ask: "Which user is Ada?" Pre-select based on name matching. Store as `ADA_USER_ID`.
+
 ---
 
 ## Step 5 — Confirm before substitution
@@ -135,6 +147,7 @@ Placeholder resolution plan:
   {{PLANKA_IN_PROGRESS_LIST_ID}}  → jkl012
   {{PLANKA_DONE_LIST_ID}}         → mno345
   {{PLANKA_ADA_LABEL_ID}}         → pqr678
+  {{PLANKA_ADA_USER_ID}}          → abc123
   {{PLANKA_OWNER_LABEL_ID}}       → stu901
   {{PLANKA_LOW_PRIORITY_LABEL_ID}}→ vwx234
 
