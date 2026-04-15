@@ -95,28 +95,39 @@ each mind can see and write. A shared container means all minds have the same ac
 
 **If yes (own container):**
 
-Show the user the standard mounts that other minds use, and ask them to confirm or
-customize. Never say "defaults only" — always list the explicit paths:
+Show the proposed mounts and ask to confirm or customize. Never say "defaults only"
+— always list explicit paths.
+
+Start with the project folder as the first recommended mount — for most minds,
+this is the most important one since it contains the codebase, tools, and skills:
 
 ```
-These are the standard mounts used by other minds on this system:
+Proposed mounts (host bind mounts — files are visible directly on your drive):
 
-  /usr/src/app  ←  /home/<user>/hive_mind  (rw)  — project code
-  /home/hivemind/.host-claude  ←  /home/<user>/.claude  (ro)  — host Claude auth
-  /home/hivemind/.claude-config  ←  /home/<user>/hive_mind/minds/<name>/.claude  (rw)  — per-mind config
+  /usr/src/app  ←  <install_dir>  (rw)  — project code, tools, and skills [recommended]
+  /home/hivemind/.host-claude  ←  ~/.claude  (ro)  — host Claude auth
+  /home/hivemind/.claude-config  ←  <install_dir>/minds/<name>/.claude  (rw)  — per-mind config
 
-Note: host bind mounts (paths on your drive) are recommended over Docker named volumes.
-Host mounts give you immediate visibility into what the mind is reading and writing.
-Docker named volumes are managed by Docker and stored in a system location — harder to
-inspect directly.
+Host bind mounts are recommended over Docker named volumes. Host mounts let you
+see exactly what the mind reads and writes. Docker named volumes are managed by
+Docker in a system location — harder to inspect or back up.
 
 Would you like to:
-  (A) Use these mounts as-is
+  (A) Use these mounts
   (B) Customize — add, remove, or change paths
 ```
 
-If the user wants a more restricted or different set, let them list paths freely.
-Ask which secrets the mind needs.
+If the user wants a different set, let them list paths freely.
+
+Ask: "Does this mind connect to any external APIs or services that need API keys?
+(Examples: Asana, Gmail, a custom REST API, Slack.) Note: Claude authentication
+was already configured in the auth step — you don't need to provide that here.
+If no external APIs, just say no."
+
+If yes: ask for the service name and key for each, store via keyring, and note
+them in the MIND.md frontmatter so the container picks them up.
+If no: skip.
+
 Write the `container:` block into the MIND.md frontmatter.
 Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
 
