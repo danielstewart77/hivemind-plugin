@@ -85,18 +85,44 @@ touch minds/<name>/__init__.py
 
 Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed from their description.
 
-## Step 4 — Container isolation (optional)
+## Step 4 — Container isolation
 
-Ask the user: "Should this mind run in its own isolated container?"
+Ask: "Should this mind run in its own isolated container? (recommended — gives each mind
+granular control over what it can access)"
 
-If yes:
-- Ask which host directories the mind should access (and read-only vs read-write)
-- Ask which secrets the mind needs
-- Write the `container:` block into the MIND.md frontmatter
-- Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml
+Default: **yes**. Own container is recommended because it lets you control exactly what
+each mind can see and write. A shared container means all minds have the same access.
 
-If no:
-- The mind runs as a subprocess inside the main hive_mind container (default)
+**If yes (own container):**
+
+Show the user the standard mounts that other minds use, and ask them to confirm or
+customize. Never say "defaults only" — always list the explicit paths:
+
+```
+These are the standard mounts used by other minds on this system:
+
+  /usr/src/app  ←  /home/<user>/hive_mind  (rw)  — project code
+  /home/hivemind/.host-claude  ←  /home/<user>/.claude  (ro)  — host Claude auth
+  /home/hivemind/.claude-config  ←  /home/<user>/hive_mind/minds/<name>/.claude  (rw)  — per-mind config
+
+Note: host bind mounts (paths on your drive) are recommended over Docker named volumes.
+Host mounts give you immediate visibility into what the mind is reading and writing.
+Docker named volumes are managed by Docker and stored in a system location — harder to
+inspect directly.
+
+Would you like to:
+  (A) Use these mounts as-is
+  (B) Customize — add, remove, or change paths
+```
+
+If the user wants a more restricted or different set, let them list paths freely.
+Ask which secrets the mind needs.
+Write the `container:` block into the MIND.md frontmatter.
+Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
+
+**If no (shared container):**
+The mind runs as a subprocess inside the main hive_mind container. It inherits all
+mounts from that container with no additional isolation.
 
 ## Step 5 — Register or Generate Standalone Compose
 
