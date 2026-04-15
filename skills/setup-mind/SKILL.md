@@ -44,39 +44,55 @@ Verify at least one provider is configured (check config.yaml providers block).
 
 ## Step 2 — List current minds
 
-```bash
-# Registered minds
-curl -sf http://localhost:8420/broker/minds | jq -r ".[].name"
+Show only minds that are actually running as containers — do NOT surface mind folder names from the repo. The repo contains default templates; they are not "installed minds."
 
-# Unregistered mind folders (have MIND.md but not in broker)
-for d in minds/*/; do
-  name=$(basename "$d")
-  [[ "$name" == "__pycache__" ]] && continue
-  if [ -f "$d/MIND.md" ]; then
-    registered=$(curl -sf http://localhost:8420/broker/minds | jq -r ".[] | select(.name==\"$name\") | .name")
-    [ -z "$registered" ] && echo "UNREGISTERED: $name (has MIND.md)"
-  fi
-done
+```bash
+# Minds registered in the broker (actually deployed)
+curl -sf http://localhost:8420/broker/minds 2>/dev/null | jq -r '.[].name' || echo "(none yet)"
+
+# Running mind containers
+docker ps --filter "label=hive-mind.role=mind" --format "{{.Names}}" 2>/dev/null || echo "(none running)"
 ```
 
 **If `spoke`:** skip — no broker running yet.
 
 ## Step 3 — Add a mind
 
+Present these options every time. Do not pre-populate or suggest mind names from the repo.
+
 ```
 What would you like to do?
 
-1. Install a new mind from template — creates and deploys a new mind on this machine
-2. Install an existing local mind — registers a minds/ folder already on this machine
+1. Create a new mind — run the mind creation wizard to build and deploy a new mind
+   on this machine
+
+2. Import an existing mind — you already have a complete minds/<name>/ folder
+   (e.g. copied from another machine). Import it and register it here.
+
+3. Register a mind from another Hive Mind instance — no local install. Adds a
+   contact entry so minds on this machine can send messages to a mind running
+   on a different Hive Mind instance. You'll need the mind's name and the other
+   instance's gateway URL (e.g. http://192.168.4.64:8420).
 ```
 
 There is no skip option. After each mind is set up, ask "Would you like to add another mind?" and loop back here until the user says no.
 
 ## Step 4 — Execute the chosen option
 
-**Option 1 (new mind from template):** delegate to `/create-mind`
+**Option 1 (create new mind):** delegate to `/create-mind`
 
-**Option 2 (existing local mind):** delegate to `/add-mind`
+**Option 2 (import existing mind folder):** delegate to `/add-mind`
+
+**Option 3 (register from another instance):**
+- Ask for: the mind's name, and the gateway URL of the other instance
+- Register the contact in config.yaml under `remote_minds`:
+  ```yaml
+  remote_minds:
+    - name: ada
+      gateway: http://192.168.4.64:8420
+  ```
+- Confirm: "Registered. Minds on this instance can now address messages to `ada` at the remote gateway."
+- Skip Steps 5, 5b, 6, 7 (no local container to configure)
 
 ## Step 5 — Per-mind volume config
 
@@ -135,19 +151,14 @@ Ask: "Would you like to add another mind?"
 - Yes → return to Step 3
 - No → proceed to Step 9
 
-## Step 9 — Cross-instance mind contacts (optional)
-
-For each mind just installed, ask:
-
-> "Does this mind need to message minds on another Hive Mind instance?"
-
-- If yes: ask for the name and gateway URL of each remote mind
-  (e.g. `ada` at `http://192.168.4.64:8420`). Store in the mind's config
-  so it can address messages to them.
-- If no: skip. This can be configured anytime by re-running `/setup-mind`.
+## Step 9 — Spoke connection (spoke installs only)
 
 **If `spoke`:** ask for the managing instance's gateway URL and configure
 the mind to route through it.
+
+**If `instance`:** nothing to do here. Remote mind contacts were handled
+per-mind in Step 4 (option 3). You can add more anytime by re-running
+`/setup-mind` and choosing option 3.
 
 ## Step 10 — Final mind roster
 
