@@ -106,38 +106,19 @@ Ask: "Would you like to define `<mind_name>`'s personality and seed its identity
 - If yes → delegate to `/setup-personality <mind_id>`
 - If no → "You can run `/setup-personality <mind_id>` anytime."
 
-## Step 6 — Per-mind auth
+## Step 6 — Verify auth
 
-If per-mind auth model was chosen in `/setup-auth`:
+Auth was configured in `create-mind` Step 1c. Verify it worked:
 
-**API key:** inject `ANTHROPIC_API_KEY` into the container env and verify with a test call.
-
-**OAuth:** OAuth for containerized minds requires an interactive terminal — the auth URL
-cannot be extracted non-interactively. Tell the user clearly, give them the exact command,
-and WAIT here for them to return. Do not skip. Do not move to the next step.
-
-Say exactly this:
-
-```
-Sergeant needs OAuth login. This requires a brief terminal step.
-
-Open a terminal on this machine and run:
-
-    docker exec -it hive-mind-sergeant claude
-
-A browser URL will appear. Open it, log in, and close the terminal.
-Then come back here and tell me when it's done.
-```
-
-When the user confirms, verify auth worked:
 ```bash
 docker exec hive-mind-<name> sh -c \
   'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config claude --output-format stream-json --verbose -p "say hi" 2>&1' \
   | python3 -c "import sys,json; [print(o.get('result','')) for l in sys.stdin for o in [json.loads(l)] if o.get('type')=='result']"
 ```
 
-If it returns a response (not "Not logged in"), auth succeeded. Continue to Step 7.
-If it still says "Not logged in", ask the user to retry the terminal step.
+If it returns a response → auth OK, continue.
+If "Not logged in" → auth was not applied correctly. Go back to create-mind Step 1c
+and re-apply the token or key.
 
 ## Step 7 — Skill selection
 

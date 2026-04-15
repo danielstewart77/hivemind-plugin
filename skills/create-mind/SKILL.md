@@ -20,16 +20,17 @@ Ask in this order:
 ```
 Which harness should this mind use?
 
-(A) Claude — uses the Claude CLI or SDK. Supports Claude models (sonnet, opus,
-    haiku) and Ollama models.
-
-(B) Codex — uses the Codex CLI or SDK. Supports OpenAI Codex models and
-    Ollama models.
+(A) Claude CLI  — wraps the claude CLI in stream-json mode. Battle-tested.
+                  Models: sonnet, opus, haiku, Ollama
+(B) Claude SDK  — uses the Claude Code SDK directly. More programmatic, agentic.
+                  Models: sonnet, opus, haiku, Ollama
+(C) Codex CLI   — Codex CLI. Models: codex-mini, o3, Ollama
+(D) Codex SDK   — Codex SDK. Models: codex-mini, o3, Ollama (untested)
 ```
 
 **1b. Model (ask based on harness chosen):**
 
-If Claude:
+If Claude (A or B):
 ```
 Which model?
   (A) sonnet   — fast, capable, recommended
@@ -38,41 +39,74 @@ Which model?
   (D) Ollama   — local model (you'll be asked for the model name)
 ```
 
-If Codex:
+If Codex (C or D):
 ```
 Which model?
-  (A) codex-mini  — lightweight Codex model
-  (B) o3          — most capable Codex model
+  (A) codex-mini  — lightweight
+  (B) o3          — most capable
   (C) Ollama      — local model (you'll be asked for the model name)
 ```
 
-If Ollama (either harness): ask for the model name (e.g. `llama3`, `mistral`).
+If Ollama: ask for the model name (e.g. `llama3`, `mistral`).
 
-**1c. Soul seed — ask these questions one at a time:**
+**1c. Authentication (Claude harness only — skip for Codex/Ollama-only):**
 
-1. "What is Sergeant's role? What does it do — what problems does it solve?"
-2. "What is Sergeant's identity? How does it present itself — its personality,
+Detect what the host is currently using:
+```bash
+python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null && echo "has-api-key" || echo "no-api-key"
+ls ${CLAUDE_CONFIG_DIR:-~/.claude-config}/.claude.json 2>/dev/null && echo "has-oauth" || echo "no-oauth"
+```
+
+If **OAuth token found**:
+```
+You're authenticated with OAuth on this machine.
+How should <mind_name> authenticate?
+(A) Copy your OAuth token — no new login needed (recommended)
+(B) Use an API key instead
+```
+If (A): `cp ${CLAUDE_CONFIG_DIR}/.claude.json minds/<name>/.claude/.claude.json`
+If (B): ask for key or check keyring; write to container env in MIND.md.
+
+If **API key found**:
+```
+You're using an API key on this machine.
+How should <mind_name> authenticate?
+(A) Copy this API key — already configured (recommended)
+(B) Use OAuth instead
+```
+If (A): inject `ANTHROPIC_API_KEY` into the container env in MIND.md.
+If (B): note in MIND.md that this mind needs OAuth post-setup. This is the only
+case requiring a separate terminal step (`docker exec -it hive-mind-<name> claude`),
+and only because the user explicitly chose OAuth when a key was available.
+
+**1d. Soul seed — ask these questions one at a time:**
+
+1. "What is <mind_name>'s role? What does it do — what problems does it solve?"
+2. "What is <mind_name>'s identity? How does it present itself — personality,
    tone, and character? (This is separate from what it does.)"
-3. "Would you like to write a backstory or manifesto for this character —
-   something that gives it history, values, or a point of view?"
-   - If yes: ask open-ended, let the user write as much or as little as they want.
+3. "Would you like to write a backstory or manifesto for this character?"
+   - If yes: ask open-ended. Let them write as much or as little as they want.
      Incorporate it into the soul seed.
-   - If no: skip. The soul seed will be built from name + role + identity alone.
+   - If no: skip. Soul seed = name + role + identity.
 
-Do not tell the user to be brief. Let them say as much or as little as they want.
+Do not tell the user to be brief.
 
 ## Step 2 — Select template
 
-Based on harness and model, auto-select the template. Do not ask the user to choose a template — they already answered the relevant questions in Step 1.
+Auto-select based on harness + model. Never ask the user to choose a template.
 
-Mapping:
-- Claude + Claude model → `claude_cli_claude` (tested)
-- Claude + Ollama       → `claude_cli_ollama` (tested)
-- Codex + Codex model  → `codex_cli_codex` (tested)
-- Codex + Ollama       → `codex_cli_ollama` (untested — warn the user)
+| Harness    | Model        | Template              | Status   |
+|------------|--------------|-----------------------|----------|
+| Claude CLI | Claude model | `claude_cli_claude`   | tested   |
+| Claude CLI | Ollama       | `claude_cli_ollama`   | tested   |
+| Claude SDK | Claude model | `claude_sdk_claude`   | tested   |
+| Claude SDK | Ollama       | `claude_sdk_ollama`   | untested |
+| Codex CLI  | Codex model  | `codex_cli_codex`     | tested   |
+| Codex CLI  | Ollama       | `codex_cli_ollama`    | untested |
+| Codex SDK  | Codex model  | `codex_sdk_codex`     | untested |
+| Codex SDK  | Ollama       | `codex_sdk_ollama`    | untested |
 
-If the selected template is marked `# UNTESTED` in the file, tell the user:
-"This combination is untested — it may need adjustments. Continuing anyway."
+If the selected template is untested, warn the user: "This combination is untested — it may need adjustments. Continuing anyway."
 
 ## Step 3 — Scaffold files
 
@@ -120,9 +154,8 @@ Would you like to:
 If the user wants a different set, let them list paths freely.
 
 Ask: "Does this mind connect to any external APIs or services that need API keys?
-(Examples: Asana, Gmail, a custom REST API, Slack.) Note: Claude authentication
-was already configured in the auth step — you don't need to provide that here.
-If no external APIs, just say no."
+(Examples: Asana, Gmail, a custom REST API, Slack.) Claude authentication was
+handled in Step 1c above. If no external APIs, just say no."
 
 If yes: ask for the service name and key for each, store via keyring, and note
 them in the MIND.md frontmatter so the container picks them up.
