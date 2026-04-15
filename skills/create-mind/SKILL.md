@@ -14,27 +14,54 @@ Set `STANDALONE=true` if `--standalone` is present.
 
 ## Step 1 — Gather info
 
-- Mind name from argument
-- Ask user for: model to use, brief identity/role description for the soul seed
+Ask in this order:
+
+**1a. Harness:**
+```
+Which harness should this mind use?
+
+(A) Claude — uses the Claude CLI or SDK. Supports Claude models (sonnet, opus,
+    haiku) and Ollama models.
+
+(B) Codex — uses the Codex CLI or SDK. Supports OpenAI Codex models and
+    Ollama models.
+```
+
+**1b. Model (ask based on harness chosen):**
+
+If Claude:
+```
+Which model?
+  (A) sonnet   — fast, capable, recommended
+  (B) opus     — most capable, slower
+  (C) haiku    — lightweight, fastest
+  (D) Ollama   — local model (you'll be asked for the model name)
+```
+
+If Codex:
+```
+Which model?
+  (A) codex-mini  — lightweight Codex model
+  (B) o3          — most capable Codex model
+  (C) Ollama      — local model (you'll be asked for the model name)
+```
+
+If Ollama (either harness): ask for the model name (e.g. `llama3`, `mistral`).
+
+**1c.** Ask for a brief identity/role description for the soul seed.
 
 ## Step 2 — Select template
 
-List available templates:
-```bash
-ls mind_templates/*.py
-```
+Based on harness and model, auto-select the template. Do not ask the user to choose a template — they already answered the relevant questions in Step 1.
 
-Present choices to the user. Templates marked `# UNTESTED` should be flagged with a warning.
+Mapping:
+- Claude + Claude model → `claude_cli_claude` (tested)
+- Claude + Ollama       → `claude_cli_ollama` (tested)
+- Codex + Codex model  → `codex_cli_codex` (tested)
+- Codex + Ollama       → `codex_cli_ollama` (untested — warn the user)
 
-Available permutations:
-- `claude_cli_claude` — Claude CLI + Claude models (tested)
-- `claude_cli_ollama` — Claude CLI + Ollama models (tested)
-- `claude_sdk_claude` — Claude SDK + Claude models (tested)
-- `claude_sdk_ollama` — Claude SDK + Ollama models (untested)
-- `codex_cli_codex` — Codex CLI + Codex models (tested)
-- `codex_cli_ollama` — Codex CLI + Ollama models (untested)
-- `codex_sdk_codex` — Codex SDK + Codex models (untested)
-- `codex_sdk_ollama` — Codex SDK + Ollama models (untested)
+If the selected template is marked `# UNTESTED` in the file, tell the user:
+"This combination is untested — it may need adjustments. Continuing anyway."
 
 ## Step 3 — Scaffold files
 
