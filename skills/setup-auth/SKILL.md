@@ -69,12 +69,34 @@ Ask auth method based on their provider situation:
 **Per-mind + OAuth:**
 - Explain that each mind container will need individual auth
 - This happens during `/setup-mind` — each new mind gets authenticated after container creation
-- For now, just record the choice
+- Write the choice to `config.yaml`:
+```bash
+python3 -c "
+import yaml
+with open('config.yaml') as f:
+    cfg = yaml.safe_load(f)
+cfg['auth'] = {'isolation': 'per-mind', 'method': 'oauth'}
+with open('config.yaml', 'w') as f:
+    yaml.dump(cfg, f, default_flow_style=False)
+print('Auth config written.')
+"
+```
 
 **Per-mind + API key:**
 - Store the API key in the keyring
 - Each mind container will reference it from the keyring at startup
-- Record the choice
+- Write the choice to `config.yaml`:
+```bash
+python3 -c "
+import yaml
+with open('config.yaml') as f:
+    cfg = yaml.safe_load(f)
+cfg['auth'] = {'isolation': 'per-mind', 'method': 'api-key'}
+with open('config.yaml', 'w') as f:
+    yaml.dump(cfg, f, default_flow_style=False)
+print('Auth config written.')
+"
+```
 
 ## Step 4 — Report
 

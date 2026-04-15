@@ -35,20 +35,18 @@ If `$ARGUMENTS[0]` is provided, skip to that provider directly.
 
 ## Step 2 — Anthropic (if selected)
 
-Check for existing key: `python3 tools/stateless/secrets/secrets.py get --key ANTHROPIC_API_KEY`
-
-If missing, ask user for their Anthropic API key. Store it:
+First, check the auth method recorded by setup-auth:
 ```bash
-python3 tools/stateless/secrets/secrets.py set --key ANTHROPIC_API_KEY --value <key>
+python3 -c "
+import yaml
+cfg = yaml.safe_load(open('config.yaml'))
+print(cfg.get('auth', {}).get('method', 'api-key'))
+"
 ```
 
-Verify:
-```bash
-curl -sf https://api.anthropic.com/v1/models \
-  -H "x-api-key: <key>" -H "anthropic-version: 2023-06-01" | jq ".data | length"
-```
-
-Add to config.yaml if not present:
+**If method is `oauth`:**
+- No API key needed — Claude Code authenticates per-mind via OAuth during `/setup-mind`
+- Just add Anthropic to config.yaml and move on:
 ```yaml
 providers:
   anthropic: {}
@@ -57,6 +55,20 @@ models:
   opus: anthropic
   haiku: anthropic
 ```
+- Note to user: "Anthropic configured for OAuth. Each mind will authenticate individually during /setup-mind."
+
+**If method is `api-key` (or auth section missing):**
+- Check for existing key: `python3 -m keyring get hive-mind ANTHROPIC_API_KEY`
+- If missing, ask user for their Anthropic API key. Store it:
+```bash
+python3 -m keyring set hive-mind ANTHROPIC_API_KEY
+```
+- Verify:
+```bash
+curl -sf https://api.anthropic.com/v1/models \
+  -H "x-api-key: <key>" -H "anthropic-version: 2023-06-01" | jq ".data | length"
+```
+- Add to config.yaml as above.
 
 ## Step 3 — OpenAI (if selected)
 
