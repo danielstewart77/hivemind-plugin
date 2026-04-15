@@ -77,8 +77,29 @@ Which components would you like to set up? (comma-separated numbers, or 'all')
 ### Communication Surfaces (1-5)
 
 **Discord bot (1):**
-- Check DISCORD_BOT_TOKEN in keyring. If missing, ask user.
-- Ask for allowed Discord user IDs, add to config.yaml.
+- Check DISCORD_BOT_TOKEN in keyring: `python3 -m keyring get hive-mind DISCORD_BOT_TOKEN 2>/dev/null`
+- If found: confirm with user and proceed.
+- If not found, ask:
+
+  > **Have you already created a Discord bot application?**
+  >
+  > (A) Yes — I have a bot token ready.
+  > (B) No — I need to create one first.
+
+  **If A:** Ask for the token. Store: `python3 -m keyring set hive-mind DISCORD_BOT_TOKEN`
+
+  **If B:** Walk the user through creating a bot:
+  1. Go to https://discord.com/developers/applications
+  2. Click "New Application" → give it a name (e.g. "Ada")
+  3. Go to the "Bot" tab → click "Add Bot"
+  4. Under "Token" → click "Reset Token" → copy it
+  5. Under "Privileged Gateway Intents" → enable **Message Content Intent**
+  6. Go to "OAuth2" → "URL Generator" → select scopes: `bot` + permissions: `Send Messages`, `Read Message History`
+  7. Visit the generated URL to invite the bot to your server
+  8. Paste the token here.
+  Store: `python3 -m keyring set hive-mind DISCORD_BOT_TOKEN`
+
+- Ask for allowed Discord user IDs (who can talk to the bot), add to config.yaml.
 - Deploy: `docker compose up -d discord-bot`
 - Verify: `docker logs hive-mind-discord --tail 10 2>&1 | grep -i "ready\|logged in"`
 
