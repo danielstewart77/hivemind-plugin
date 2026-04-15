@@ -38,6 +38,7 @@ Which model?
   (C) haiku    — lightweight, fastest
   (D) Ollama   — local model (you'll be asked for the model name)
 ```
+**Present all four options exactly as written above. Do not abbreviate or summarize to fewer choices.**
 
 If Codex (C or D):
 ```
