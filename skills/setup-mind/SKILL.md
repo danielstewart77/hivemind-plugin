@@ -9,19 +9,28 @@ tools: Bash, Read
 
 Set up minds for the system. At least one mind is needed.
 
-## Step 0 — Topology selection
+## Step 0 — Topology (fallback — skip if already set by /setup)
 
-Ask the user which deployment topology they want:
+If `TOPOLOGY` was already set during `/setup` Step 0b, skip this step entirely.
 
-1. **Hub (recommended for first install)** — This machine is the primary Hive Mind instance. Runs the full stack: gateway, broker, all infrastructure. All minds, memory, and communication surfaces live here. Set this up first — every spoke and remote hub connects to a Hub.
-2. **Spoke (connect to existing Hub)** — This machine's minds route through an existing Hub's gateway and broker. No local gateway needed. **Requires a running Hub — without one, selecting this leaves you with no working system.**
-3. **Remote Hub (second independent instance)** — A fully independent Hive Mind instance on this machine, linked to an existing Hub via the broker API. Both run their own full stacks but share messaging and can delegate across machines.
+If running `/setup-mind` standalone (not via `/setup`), ask:
 
-> **Note (Spoke):** The Spoke topology is a hub-and-spoke model. This machine is the spoke — it connects into a central Hub. If you don't have a Hub already running somewhere, choose Hub first.
+```
+What is this machine's role in the Hive Mind network?
 
-Store the topology as `TOPOLOGY` (values: `federated`, `standalone`, `remote`). All subsequent steps branch on this value.
+(A) Hub (first install, recommended) — Full stack: gateway, broker, all
+    infrastructure. The central node. Set this up before adding Spokes.
 
-**If `remote`:** delegate to `/setup-remote` and exit this skill.
+(B) Spoke — Connect this machine to an existing Hub. Minds here route through
+    the Hub's gateway and broker. Requires a running Hub.
+
+(C) Remote Hub — Second independent instance, linked to an existing Hub via
+    the broker API.
+```
+
+Store as `TOPOLOGY` (values: `hub`, `spoke`, `remote-hub`).
+
+**If `spoke` or `remote-hub`:** do NOT delegate to `/setup-remote`. That skill SSHes into another machine to install Hive Mind there — it is not for configuring the local instance's federation. Instead, proceed with Steps 1–8 below, then configure the broker federation link at the end.
 
 ## Step 1 — Prerequisite check
 
