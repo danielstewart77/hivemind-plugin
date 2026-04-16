@@ -50,7 +50,7 @@ Which model?
 
 If Ollama: ask for the server address first, then query available models:
 
-1. Ask: "What is the Ollama server address?" (e.g. `http://192.168.4.64:11434`)
+1. Ask: "What is the Ollama server address?" (e.g. `http://localhost:11434`)
 2. Query available models:
 ```bash
 curl -sf <ollama-address>/api/tags | python3 -c "import sys,json; [print(f'  ({chr(65+i)}) {m[\"name\"]}') for i,m in enumerate(json.load(sys.stdin).get('models',[]))]"
