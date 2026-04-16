@@ -8,11 +8,13 @@ user-invocable: true
 # create-mind
 
 `$ARGUMENTS[0]` = mind name. Ask if missing.
-`$ARGUMENTS[1]` = `--standalone` if creating a standalone (non-federated) mind. Default: federated.
+`$ARGUMENTS[1]` = `--standalone` if creating an isolated (non-networked) mind. Default: connected.
 
-Set `STANDALONE=true` if `--standalone` is present.
+Set `STANDALONE=true` if `--standalone` is present. Do not ask about this upfront — ask in Step 5.
 
 ## Step 1 — Gather info
+
+Ask only for the name up front. Do NOT ask about network topology yet.
 
 Ask in this order:
 
@@ -207,12 +209,26 @@ Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
 The mind runs as a subprocess inside the main hive_mind container. It inherits all
 mounts from that container with no additional isolation.
 
-## Step 5 — Register or Generate Standalone Compose
+## Step 5 — Network topology
 
-**If federated:**
+Ask now (not before):
+
+```
+Should this mind join the Hive Mind network?
+
+(A) Connected (recommended) — joins the broker so Ada and other minds
+    can route tasks to it and Daniel can message it through the system.
+    This is the standard choice for any mind that's part of your setup.
+
+(B) Isolated — runs completely on its own with no broker connection.
+    Use this only if you're spinning up an independent Claude instance
+    that has no relationship to the rest of the system.
+```
+
+**If (A) connected (formerly "federated"):**
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
 
-**If standalone:**
+**If (B) isolated (formerly "standalone"):**
 Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml` with only the mind container and a lightweight message handler. No broker, no gateway, no Neo4j.
 
 After compose generation:
@@ -225,7 +241,7 @@ Confirm the mind container is running:
 docker compose ps
 ```
 
-Note: standalone minds cannot be registered with the broker. Skip the broker registration step entirely.
+Note: isolated minds cannot be registered with the broker. Skip the broker registration step entirely.
 
 ## Step 6 — Report
 
