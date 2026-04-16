@@ -145,35 +145,50 @@ Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed 
 
 ## Step 4 — Container isolation
 
-Ask: "Should this mind run in its own isolated container? (recommended — gives each mind
-granular control over what it can access)"
+Ask:
 
-Default: **yes**. Own container is recommended because it lets you control exactly what
-each mind can see and write. A shared container means all minds have the same access.
+```
+Should this mind run in its own isolated container?
 
-**If yes (own container):**
+(A) Own container (recommended) — each mind gets its own Docker container.
+    Best when you have multiple minds or want to control exactly which files
+    each mind can read and write. Lets you scope access per-mind.
+
+(B) Shared container — the mind runs as a subprocess inside the main
+    hive_mind container. Simpler setup, fine for a single mind or when
+    you don't need per-mind access control. Inherits all mounts from the
+    main container.
+```
+
+**If (A) own container:**
 
 Show the proposed mounts and ask to confirm or customize. Never say "defaults only"
 — always list explicit paths.
 
-Start with the project folder as the first recommended mount — for most minds,
-this is the most important one since it contains the codebase, tools, and skills:
+The project directory is the primary mount. If it is mounted, `minds/<name>/.claude`
+is already inside it — no separate per-mind config mount is needed.
 
 ```
 Proposed mounts (host bind mounts — files are visible directly on your drive):
 
-  /usr/src/app  ←  <install_dir>  (rw)  — project code, tools, and skills [recommended]
-  /home/hivemind/.host-claude  ←  ~/.claude  (ro)  — host Claude auth
-  /home/hivemind/.claude-config  ←  <install_dir>/minds/<name>/.claude  (rw)  — per-mind config
+  /usr/src/app  ←  <install_dir>  (rw)  — project code, tools, skills, and all mind configs
 
 Host bind mounts are recommended over Docker named volumes. Host mounts let you
-see exactly what the mind reads and writes. Docker named volumes are managed by
-Docker in a system location — harder to inspect or back up.
+see exactly what the mind reads and writes.
 
 Would you like to:
-  (A) Use these mounts
+  (A) Use this mount
   (B) Customize — add, remove, or change paths
 ```
+
+If the user does NOT mount the full project directory, offer this fallback instead:
+```
+  /home/hivemind/.claude-config  ←  <install_dir>/minds/<name>/.claude  (rw)  — per-mind config only
+```
+
+Note: for Ollama-backed minds, no OAuth mount is needed — auth comes from env vars only.
+For Claude OAuth minds, OAuth credentials live in `minds/<name>/.claude/` which is
+already covered by the project directory mount above.
 
 If the user wants a different set, let them list paths freely.
 
@@ -188,7 +203,7 @@ If no: skip.
 Write the `container:` block into the MIND.md frontmatter.
 Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
 
-**If no (shared container):**
+**If (B) shared container:**
 The mind runs as a subprocess inside the main hive_mind container. It inherits all
 mounts from that container with no additional isolation.
 
