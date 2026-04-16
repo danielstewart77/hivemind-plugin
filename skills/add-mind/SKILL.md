@@ -1,6 +1,6 @@
 ---
 name: add-mind
-description: Connects a mind to the Hive Mind system. For new local minds, scaffolds MIND.md and implementation.py, then registers. For remote minds, writes a MIND.md pointing at the external gateway. For re-registration, re-runs discovery against an existing folder.
+description: Connects a mind to the Hive Mind system. Supports three install types — Docker (containerised in this stack), remote (separate host), or bare-metal (systemd service on this host outside Docker). Scaffolds and registers accordingly.
 argument-hint: "[name]"
 user-invocable: true
 ---
@@ -13,10 +13,14 @@ user-invocable: true
 
 Check if `minds/$ARGUMENTS[0]/` directory exists:
 
-- **No directory → Scenario A (new local) or B (remote).** Ask the user:
-  - "Is this a local mind (runs in this Docker stack) or a remote mind (runs on another host)?"
-  - If local → Scenario A
-  - If remote → Scenario B
+- **No directory → Scenario A, B, or D.** Ask the user:
+  - "How does this mind run?"
+  - "1. Docker — runs as a container in this stack"
+  - "2. Remote — runs on a different host (separate machine or VM)"
+  - "3. Bare-metal — runs directly on this host outside Docker (e.g. a systemd service at a localhost port)"
+  - If 1 → Scenario A
+  - If 2 → Scenario B
+  - If 3 → Scenario D
 
 - **Directory exists → Scenario C (re-registration).** The mind folder is already there but may not be in the broker.
 
@@ -60,6 +64,19 @@ remote: true
 ---
 ```
 
+**Scenario D (bare-metal local):**
+
+Ask the user for the port the mind is running on (e.g. `8421`). Set `gateway_url` to `http://localhost:<port>`.
+
+Confirm the service is up before proceeding:
+```bash
+curl -sf http://localhost:<port>/health && echo "UP" || echo "NOT RUNNING — start the service first"
+```
+
+If not running, stop and tell the user to start the service, then re-run `/add-mind`.
+
+No MIND.md is written inside the hive_mind project — the mind project lives at its own path on the host. Skip to Step 5.
+
 For Scenario C: MIND.md already exists — skip to Step 3.
 
 ## Step 3 — Scaffold implementation.py (Scenario A only)
@@ -82,9 +99,11 @@ sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
 
 Create `minds/<name>/__init__.py` (empty file).
 
-## Step 4 — Generate compose (if containerised)
+## Step 4 — Generate compose (Scenario A only)
 
-Check if the MIND.md has a `container:` block. If it does, run `/generate-compose` to update `docker-compose.yml` with the new mind's service definition, then start the container:
+Skip this step for Scenarios B, C, and D.
+
+For Scenario A: check if the MIND.md has a `container:` block. If it does, run `/generate-compose` to update `docker-compose.yml` with the new mind's service definition, then start the container:
 
 ```bash
 docker compose up -d <name>
@@ -128,8 +147,8 @@ If routability check fails, surface the error clearly but do NOT roll back the r
 ## Step 7 — Report
 
 Summarize:
-- Scenario handled (A/B/C)
-- Files created (MIND.md, implementation.py, __init__.py)
-- Containerised (yes/no, compose updated)
+- Scenario handled (A=Docker / B=Remote / C=Re-registration / D=Bare-metal)
+- Files created (MIND.md, implementation.py, __init__.py — Scenario A only)
+- Containerised (yes/no, compose updated — Scenario A only)
 - Broker registration status
 - Routability verification result

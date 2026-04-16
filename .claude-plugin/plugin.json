@@ -1,12 +1,9 @@
 {
   "name": "hivemind",
+  "description": "Hive Mind — skills, agents, and hooks for multi-mind AI orchestration, memory, development pipelines, and system operations.",
   "version": "1.0.0",
-  "description": "Hive Mind — multi-mind AI orchestration system for Claude Code",
   "author": {
-    "name": "Daniel Stewart",
-    "email": "danielstewart77@gmail.com"
+    "name": "danielstewart77"
   },
-  "skills": true,
-  "agents": true,
-  "hooks": true
+  "repository": "https://github.com/danielstewart77/hivemind-plugin"
 }
