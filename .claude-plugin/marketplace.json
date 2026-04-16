@@ -7,11 +7,8 @@
   "plugins": [
     {
       "name": "hivemind",
-      "description": "Hive Mind — multi-mind AI orchestration system for Claude Code",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/danielstewart77/hivemind-plugin.git"
-      }
+      "source": "./",
+      "description": "Hive Mind — multi-mind AI orchestration system for Claude Code"
     }
   ]
 }
