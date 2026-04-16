@@ -48,7 +48,15 @@ Which model?
   (C) Ollama      — local model (you'll be asked for the model name)
 ```
 
-If Ollama: ask for the model name (e.g. `llama3`, `mistral`).
+If Ollama: ask for the server address first, then query available models:
+
+1. Ask: "What is the Ollama server address?" (e.g. `http://192.168.4.64:11434`)
+2. Query available models:
+```bash
+curl -sf <ollama-address>/api/tags | python3 -c "import sys,json; [print(f'  ({chr(65+i)}) {m[\"name\"]}') for i,m in enumerate(json.load(sys.stdin).get('models',[]))]"
+```
+3. Present the numbered list and ask the user to pick one.
+4. Store the chosen model name and server address. If the curl fails, ask the user to type the model name manually.
 
 **1c. Authentication:**
 
@@ -59,7 +67,7 @@ environment:
   ANTHROPIC_AUTH_TOKEN: "ollama"
   ANTHROPIC_BASE_URL: "http://<ollama-host>:11434"
 ```
-Ask: "What is the Ollama server address?" (e.g. `http://192.168.4.64:11434`). No OAuth or API key needed. Skip to Step 1d.
+The Ollama server address was already collected in Step 1b — use it here. No OAuth or API key needed. Skip to Step 1d.
 
 **If model is a Claude model** (sonnet/opus/haiku), detect what the host is currently using:
 ```bash
