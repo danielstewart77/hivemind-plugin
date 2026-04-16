@@ -105,15 +105,13 @@ If (B): note in MIND.md that this mind needs OAuth post-setup. This is the only
 case requiring a separate terminal step (`docker exec -it hive-mind-<name> claude`),
 and only because the user explicitly chose OAuth when a key was available.
 
-**1d. Soul seed — ask these questions one at a time:**
+**1d. Soul seed — ask these two questions one at a time:**
 
-1. "What is <mind_name>'s role? What does it do — what problems does it solve?"
-2. "What is <mind_name>'s identity? How does it present itself — personality,
-   tone, and character? (This is separate from what it does.)"
-3. "Would you like to write a backstory or manifesto for this character?"
+1. "What is <mind_name>'s role and function? What does it do, what does it monitor or act on, what problems does it solve?"
+2. "Would you like to give <mind_name> a character backstory or manifesto — personality, tone, identity?"
    - If yes: ask open-ended. Let them write as much or as little as they want.
-     Incorporate it into the soul seed.
-   - If no: skip. Soul seed = name + role + identity.
+     Incorporate everything (role + character) into the soul seed.
+   - If no: soul seed = name + role only.
 
 Do not tell the user to be brief.
 
