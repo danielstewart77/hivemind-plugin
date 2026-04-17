@@ -216,13 +216,21 @@ Ask now (not before):
 ```
 Should this mind join the Hive Mind network?
 
-(A) Connected (recommended) — joins the broker so Ada and other minds
-    can route tasks to it and Daniel can message it through the system.
-    This is the standard choice for any mind that's part of your setup.
+(A) Connected (recommended for most cases)
+    This mind joins the broker and becomes part of your Hive Mind system.
+    Ada can delegate tasks to it, you can message it through Telegram,
+    and other minds can route work to it. Whether this is your first mind
+    or your fifth, choose this if it's meant to be part of your setup.
+    Example: adding a coding mind, a research mind, or a specialist agent
+    alongside an existing Ada.
 
-(B) Isolated — runs completely on its own with no broker connection.
-    Use this only if you're spinning up an independent Claude instance
-    that has no relationship to the rest of the system.
+(B) Isolated — completely independent, no network connection
+    This mind runs on its own with no broker, no routing, and no
+    relationship to the rest of the system. It can't receive messages
+    from other minds and won't appear in the network.
+    Example: spinning up a private Claude instance for a client or a
+    project that must be fully air-gapped from your main Hive Mind.
+    If you're unsure, you almost certainly want (A).
 ```
 
 **If (A) connected (formerly "federated"):**
