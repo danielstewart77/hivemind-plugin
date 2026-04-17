@@ -160,24 +160,28 @@ Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed.
 
 Ask two questions — one at a time:
 
-1. "Where is the Hive Mind project on this host?"
-   (e.g. `/home/daniel/Storage/Dev/hive_mind`)
-   Store as `HIVE_MIND_PATH`.
-
-2. "Where should the mind's runtime files live? (venv + credentials only)"
+1. "Where should this mind be installed?"
    (e.g. `/home/daniel/skippy`)
-   Store as `INSTALL_PATH`.
+   Store as `INSTALL_PATH`. All code, runtime files, and credentials go here — nothing
+   is written anywhere else.
 
-Scaffold the mind package into the Hive Mind project tree — **not into INSTALL_PATH**:
+2. "Where is the Hive Mind project on this host?"
+   (e.g. `/home/daniel/Storage/Dev/hive_mind`)
+   Store as `HIVE_MIND_PATH`. Used only to copy templates from — nothing is written there.
+
+Scaffold everything into INSTALL_PATH:
 
 ```bash
-mkdir -p <HIVE_MIND_PATH>/minds/<name>
-cp <HIVE_MIND_PATH>/mind_templates/<selected>.py <HIVE_MIND_PATH>/minds/<name>/implementation.py
-sed -i 's/MIND_NAME/<name>/g' <HIVE_MIND_PATH>/minds/<name>/implementation.py
-touch <HIVE_MIND_PATH>/minds/<name>/__init__.py
+mkdir -p <INSTALL_PATH>/minds/<name>
+cp <HIVE_MIND_PATH>/mind_templates/<selected>.py <INSTALL_PATH>/minds/<name>/implementation.py
+sed -i 's/MIND_NAME/<name>/g' <INSTALL_PATH>/minds/<name>/implementation.py
+touch <INSTALL_PATH>/minds/<name>/__init__.py
+mkdir -p <INSTALL_PATH>/souls
+# Copy the shared mind server — not a stub; the real thing
+cp <HIVE_MIND_PATH>/mind_server.py <INSTALL_PATH>/mind_server.py
 ```
 
-Write `<HIVE_MIND_PATH>/souls/<name>.md` with the soul seed.
+Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
 
 Write `<INSTALL_PATH>/.env`:
 ```
@@ -198,9 +202,9 @@ After=network.target
 [Service]
 Type=simple
 User=<current user>
-WorkingDirectory=<HIVE_MIND_PATH>
+WorkingDirectory=<INSTALL_PATH>
 EnvironmentFile=<INSTALL_PATH>/.env
-ExecStart=<INSTALL_PATH>/.venv/bin/python3 <HIVE_MIND_PATH>/mind_server.py
+ExecStart=<INSTALL_PATH>/.venv/bin/python3 <INSTALL_PATH>/mind_server.py
 Restart=no
 StandardOutput=journal
 StandardError=journal
@@ -209,10 +213,8 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-**Why `WorkingDirectory=<HIVE_MIND_PATH>`**: Python finds `minds.<name>.implementation`
-there (single copy, no duplication). Claude CLI finds `.mcp.json` there automatically
-(MCP fully wired — no extra config needed). `CLAUDE_CONFIG_DIR` in `.env` keeps
-credentials isolated to `INSTALL_PATH`.
+Note: `WorkingDirectory=<INSTALL_PATH>` means Python finds `minds.<name>.implementation`
+there automatically — no sys.path manipulation, no hive_mind dependency at runtime.
 
 After writing all files above, immediately run these — do not ask:
 
@@ -335,6 +337,6 @@ Skip broker registration.
 - Deployment type: Docker or bare-metal
 - Template used
 - Files created (with full paths)
-- For bare-metal: systemd unit shown, port, INSTALL_PATH (runtime), HIVE_MIND_PATH (code).
-  Note: implementation lives only in `<HIVE_MIND_PATH>/minds/<name>/` — no duplicate copy.
+- For bare-metal: systemd unit shown, port, INSTALL_PATH. All code lives there — nothing
+  written to hive_mind.
 - For Docker: compose and registration status
