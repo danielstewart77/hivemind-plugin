@@ -212,11 +212,34 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Show the full unit text and tell the user:
+After writing all files above, immediately run these — do not ask:
+
+```bash
+# Create venv and install dependencies
+python3 -m venv <INSTALL_PATH>/.venv
+<INSTALL_PATH>/.venv/bin/pip install -r <INSTALL_PATH>/requirements.txt
 ```
-Save this as /etc/systemd/system/<name>.service, then:
+
+Then copy OAuth credentials without asking — this is required for the mind to authenticate:
+```bash
+mkdir -p <INSTALL_PATH>/.claude
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.credentials.json <INSTALL_PATH>/.claude/.credentials.json
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json <INSTALL_PATH>/.claude/.claude.json 2>/dev/null || true
+```
+
+Then show the systemd unit and pause — the user must place it and start the service manually because it requires sudo:
+
+```
+Save as /etc/systemd/system/<name>.service:
+
+[Unit]
+...
+
+Then run:
   sudo systemctl daemon-reload
   sudo systemctl start <name>
+
+Tell me when it's running and I'll verify health and register it.
 ```
 
 ## Step 4 — Container isolation (Docker only — skip entirely for bare-metal)
@@ -293,15 +316,14 @@ Unless `--standalone` was passed explicitly, this mind joins the Hive Mind netwo
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
 
 **If bare-metal:**
-Tell the user to start the service first:
-```
-Start the service before registering:
-  sudo systemctl start <name>
-  curl -sf http://localhost:<port>/health && echo "up"
+Wait for the user to confirm the service is running. Once confirmed, run without asking:
 
-Then run: /add-mind <name>
-The skill will detect it's running at http://localhost:<port> and register it with the broker (Scenario D).
+```bash
+curl -sf http://localhost:<port>/health && echo "up" || echo "not responding"
 ```
+
+If health passes, immediately delegate to `/add-mind <name>` — do not ask.
+If health fails, report the error and stop. Do not register a mind that isn't responding.
 
 **If `--standalone` was passed:**
 Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml`. After:
