@@ -14,9 +14,9 @@ Set `STANDALONE=true` if `--standalone` is present.
 
 ## Step 1 — Gather info
 
-Ask only for the name up front, then ask deployment type. Do NOT ask about network topology.
+**The very first question you must ask — before harness, before model, before anything else — is deployment type.** If the name was given as an argument, skip asking for it and go straight to this question.
 
-**1a. Deployment type:**
+**1a. Deployment type — ask this first:**
 
 ```
 Where will this mind run?
