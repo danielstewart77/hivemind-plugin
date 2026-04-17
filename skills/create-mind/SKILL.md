@@ -14,23 +14,46 @@ Set `STANDALONE=true` if `--standalone` is present.
 
 ## Step 1 — Gather info
 
-**The very first question you must ask — before harness, before model, before anything else — is deployment type.** If the name was given as an argument, skip asking for it and go straight to this question.
+**The very first questions — ask these before harness, model, or anything else.**
+If the name was given as an argument, skip asking for it and go straight to 1a.
 
-**1a. Deployment type — ask this first:**
+**1a. Location — where does this mind run?**
 
 ```
 Where will this mind run?
 
-(A) Docker container — runs inside the Hive Mind Docker stack.
-    Standard choice for minds managed alongside the rest of the system.
+(A) In this HiveMind — Docker container inside the existing hive_mind stack.
+    Standard choice. Managed alongside Ada and other minds.
 
-(B) Bare-metal service — runs directly on this host outside Docker.
+(B) On this system, outside HiveMind — bare-metal service on this host,
+    in a directory outside the hive_mind repo.
     Use when the mind needs full host access (filesystem, Docker daemon,
     system config) that container isolation would prevent.
-    Example: a privileged operator mind started on demand via systemd.
+
+(C) On a remote system — different host, accessed via SSH.
+    (Delegates to /setup-remote after gathering info here.)
 ```
 
-Set `BARE_METAL=true` if (B). This changes Steps 1c, 3, 4, and 5.
+Set `LOCATION=docker` for (A), `LOCATION=local_external` for (B), `LOCATION=remote` for (C).
+
+**1b. Connectivity — ask immediately after 1a (for A and B; skip for C):**
+
+```
+Should this mind connect to this HiveMind, or run fully independently?
+
+(A) Hub-and-spoke — registers with this HiveMind's broker. Ada can delegate
+    to it; it appears in the mind registry. Standard for collaborative minds.
+
+(B) Fully standalone — its own complete HiveMind system: server, broker,
+    MCP stack, everything. Does not register with this broker at all.
+    Use when the mind must operate independently even if this HiveMind is down.
+    Example: an operator mind that may need to restart or repair this system.
+```
+
+Set `STANDALONE=true` if (B). For standalone: this is a full HiveMind installation,
+not just a single mind. Steps 3–5 change significantly — see below.
+
+Set `BARE_METAL=true` if LOCATION is `local_external` or `remote`.
 
 ---
 
@@ -147,7 +170,54 @@ If the selected template is untested, warn the user: "This combination is untest
 
 ## Step 3 — Scaffold files
 
-**If Docker:**
+**If STANDALONE=true (fully standalone HiveMind installation):**
+
+This is not a single mind — it's a full HiveMind system. The scaffold is:
+
+1. Clone or copy the hive_mind repo to `<INSTALL_PATH>`:
+   ```bash
+   git clone https://github.com/danielstewart77/hive_mind <INSTALL_PATH>
+   ```
+   OR if the user prefers a local copy:
+   ```bash
+   cp -r <HIVE_MIND_PATH> <INSTALL_PATH>
+   ```
+2. Create `<INSTALL_PATH>/config.yaml` (ask the user for port — default 8421, since 8420 is taken).
+3. Copy OAuth credentials to `<INSTALL_PATH>/.claude/` (same as bare-metal above).
+4. Create venv and install deps:
+   ```bash
+   python3 -m venv <INSTALL_PATH>/.venv
+   <INSTALL_PATH>/.venv/bin/pip install -r <INSTALL_PATH>/requirements.txt
+   ```
+5. The mind's own implementation goes under `<INSTALL_PATH>/minds/<name>/` using the
+   selected template (same as the Docker scaffold, but targeting INSTALL_PATH).
+6. Write the soul seed to `<INSTALL_PATH>/souls/<name>.md`.
+7. Show a systemd unit for the standalone system's gateway server:
+   ```ini
+   [Unit]
+   Description=<name> HiveMind — Standalone Gateway
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=<current user>
+   WorkingDirectory=<INSTALL_PATH>
+   ExecStart=<INSTALL_PATH>/.venv/bin/python3 server.py
+   Restart=on-failure
+   StandardOutput=journal
+   StandardError=journal
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+8. Pause for user to place and start the systemd unit.
+
+Skip Steps 4 and 5 (no broker registration — this system is independent).
+Go directly to Step 6 — Report.
+
+---
+
+**If Docker (LOCATION=docker, not standalone):**
 ```bash
 mkdir -p minds/<name>
 cp mind_templates/<selected>.py minds/<name>/implementation.py
@@ -307,14 +377,14 @@ mounts from that container with no additional isolation.
 
 ## Step 5 — Register with the network
 
-Do not ask. Proceed directly.
+**If STANDALONE=true:** Skip this step entirely. The standalone system is independent.
 
-Unless `--standalone` was passed explicitly, this mind joins the Hive Mind network.
+Do not ask for hub-and-spoke minds. Proceed directly.
 
-**If Docker:**
+**If Docker (hub-and-spoke):**
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
 
-**If bare-metal:**
+**If bare-metal, local_external (hub-and-spoke):**
 Wait for the user to confirm the service is running. Once confirmed, run without asking:
 
 ```bash
@@ -323,14 +393,6 @@ curl -sf http://localhost:<port>/health && echo "up" || echo "not responding"
 
 If health passes, immediately delegate to `/add-mind <name>` — do not ask.
 If health fails, report the error and stop. Do not register a mind that isn't responding.
-
-**If `--standalone` was passed:**
-Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml`. After:
-```bash
-docker compose up -d --build
-docker compose ps
-```
-Skip broker registration.
 
 ## Step 6 — Report
 
