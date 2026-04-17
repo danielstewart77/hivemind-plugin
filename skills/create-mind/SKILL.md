@@ -158,18 +158,26 @@ Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed.
 
 **If bare-metal:**
 
-Ask: "Where should the project live on this host?" (e.g. `/home/daniel/skippy`)
-Store as `INSTALL_PATH`.
+Ask two questions — one at a time:
+
+1. "Where is the Hive Mind project on this host?"
+   (e.g. `/home/daniel/Storage/Dev/hive_mind`)
+   Store as `HIVE_MIND_PATH`.
+
+2. "Where should the mind's runtime files live? (venv + credentials only)"
+   (e.g. `/home/daniel/skippy`)
+   Store as `INSTALL_PATH`.
+
+Scaffold the mind package into the Hive Mind project tree — **not into INSTALL_PATH**:
 
 ```bash
-mkdir -p <INSTALL_PATH>/minds/<name>
-cp /usr/src/app/mind_templates/<selected>.py <INSTALL_PATH>/minds/<name>/implementation.py
-sed -i 's/MIND_NAME/<name>/g' <INSTALL_PATH>/minds/<name>/implementation.py
-touch <INSTALL_PATH>/minds/<name>/__init__.py
-mkdir -p <INSTALL_PATH>/souls
+mkdir -p <HIVE_MIND_PATH>/minds/<name>
+cp <HIVE_MIND_PATH>/mind_templates/<selected>.py <HIVE_MIND_PATH>/minds/<name>/implementation.py
+sed -i 's/MIND_NAME/<name>/g' <HIVE_MIND_PATH>/minds/<name>/implementation.py
+touch <HIVE_MIND_PATH>/minds/<name>/__init__.py
 ```
 
-Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
+Write `<HIVE_MIND_PATH>/souls/<name>.md` with the soul seed.
 
 Write `<INSTALL_PATH>/.env`:
 ```
@@ -177,22 +185,11 @@ MIND_ID=<name>
 MIND_SERVER_PORT=<port>
 HIVE_MIND_SERVER_URL=http://localhost:8420
 PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
+CLAUDE_CONFIG_DIR=<INSTALL_PATH>/.claude
 ```
 Ask what port to use (default: 8421).
 
-Write `<INSTALL_PATH>/requirements.txt` referencing the hive_mind requirements as a starting point.
-
-Write a `<INSTALL_PATH>/mind_server.py` stub that imports from the hive_mind install:
-```python
-# Run with: MIND_ID=<name> python3 mind_server.py
-import sys
-sys.path.insert(0, '/usr/src/app')  # adjust to hive_mind install path
-from mind_server import main
-if __name__ == '__main__':
-    main()
-```
-
-Write the systemd unit to display only (do NOT write to `/etc/systemd/system/` — show the user and let them place it):
+Show the systemd unit to display only (do NOT write to `/etc/systemd/system/` — show the user and let them place it):
 ```ini
 [Unit]
 Description=<name> — Hive Mind Bare-Metal Mind
@@ -201,9 +198,9 @@ After=network.target
 [Service]
 Type=simple
 User=<current user>
-WorkingDirectory=<INSTALL_PATH>
+WorkingDirectory=<HIVE_MIND_PATH>
 EnvironmentFile=<INSTALL_PATH>/.env
-ExecStart=<INSTALL_PATH>/.venv/bin/python3 mind_server.py
+ExecStart=<INSTALL_PATH>/.venv/bin/python3 <HIVE_MIND_PATH>/mind_server.py
 Restart=no
 StandardOutput=journal
 StandardError=journal
@@ -212,12 +209,17 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
+**Why `WorkingDirectory=<HIVE_MIND_PATH>`**: Python finds `minds.<name>.implementation`
+there (single copy, no duplication). Claude CLI finds `.mcp.json` there automatically
+(MCP fully wired — no extra config needed). `CLAUDE_CONFIG_DIR` in `.env` keeps
+credentials isolated to `INSTALL_PATH`.
+
 After writing all files above, immediately run these — do not ask:
 
 ```bash
 # Create venv and install dependencies
 python3 -m venv <INSTALL_PATH>/.venv
-<INSTALL_PATH>/.venv/bin/pip install -r <INSTALL_PATH>/requirements.txt
+<INSTALL_PATH>/.venv/bin/pip install -r <HIVE_MIND_PATH>/requirements.txt
 ```
 
 Then copy OAuth credentials without asking — this is required for the mind to authenticate:
@@ -230,12 +232,7 @@ cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json <INSTALL_PATH>/.claude/.claude.j
 Then show the systemd unit and pause — the user must place it and start the service manually because it requires sudo:
 
 ```
-Save as /etc/systemd/system/<name>.service:
-
-[Unit]
-...
-
-Then run:
+Save as /etc/systemd/system/<name>.service, then run:
   sudo systemctl daemon-reload
   sudo systemctl start <name>
 
@@ -338,5 +335,6 @@ Skip broker registration.
 - Deployment type: Docker or bare-metal
 - Template used
 - Files created (with full paths)
-- For bare-metal: systemd unit shown, port, install path
+- For bare-metal: systemd unit shown, port, INSTALL_PATH (runtime), HIVE_MIND_PATH (code).
+  Note: implementation lives only in `<HIVE_MIND_PATH>/minds/<name>/` — no duplicate copy.
 - For Docker: compose and registration status
