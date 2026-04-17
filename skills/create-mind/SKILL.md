@@ -1,6 +1,6 @@
 ---
 name: create-mind
-description: Create a new mind from a template. Scaffolds MIND.md and implementation.py, then registers with the broker. Use when the user wants to add a brand-new mind to the system.
+description: Create a new mind from a template. Scaffolds files and registers with the broker. Use when the user wants to add a brand-new mind to the system.
 argument-hint: "[name] [--standalone]"
 user-invocable: true
 ---
@@ -10,15 +10,31 @@ user-invocable: true
 `$ARGUMENTS[0]` = mind name. Ask if missing.
 `$ARGUMENTS[1]` = `--standalone` if creating an isolated (non-networked) mind. Default: connected.
 
-Set `STANDALONE=true` if `--standalone` is present. Do not ask about this upfront — ask in Step 5.
+Set `STANDALONE=true` if `--standalone` is present.
 
 ## Step 1 — Gather info
 
-Ask only for the name up front. Do NOT ask about network topology yet.
+Ask only for the name up front, then ask deployment type. Do NOT ask about network topology.
 
-Ask in this order:
+**1a. Deployment type:**
 
-**1a. Harness:**
+```
+Where will this mind run?
+
+(A) Docker container — runs inside the Hive Mind Docker stack.
+    Standard choice for minds managed alongside the rest of the system.
+
+(B) Bare-metal service — runs directly on this host outside Docker.
+    Use when the mind needs full host access (filesystem, Docker daemon,
+    system config) that container isolation would prevent.
+    Example: a privileged operator mind started on demand via systemd.
+```
+
+Set `BARE_METAL=true` if (B). This changes Steps 1c, 3, 4, and 5.
+
+---
+
+**1b. Harness:**
 ```
 Which harness should this mind use?
 
@@ -30,7 +46,7 @@ Which harness should this mind use?
 (D) Codex SDK   — Codex SDK. Models: codex-mini, o3, Ollama (untested)
 ```
 
-**1b. Model (ask based on harness chosen):**
+**1c. Model (ask based on harness chosen):**
 
 If Claude (A or B):
 ```
@@ -60,24 +76,21 @@ curl -sf <ollama-address>/api/tags | python3 -c "import sys,json; [print(f'  ({c
 3. Present the numbered list and ask the user to pick one.
 4. Store the chosen model name and server address. If the curl fails, ask the user to type the model name manually.
 
-**1c. Authentication:**
+**1d. Authentication:**
 
-**If model is Ollama** (regardless of harness — Claude CLI or SDK):
-Do NOT copy OAuth files. Instead, inject these env vars into the container block in MIND.md:
-```yaml
-environment:
-  ANTHROPIC_AUTH_TOKEN: "ollama"
-  ANTHROPIC_BASE_URL: "http://<ollama-host>:11434"
-```
-The Ollama server address was already collected in Step 1b — use it here. No OAuth or API key needed. Skip to Step 1d.
+**If model is Ollama**: No OAuth or API key needed. Note that the bare-metal `.env` (or container env) will need `ANTHROPIC_AUTH_TOKEN=ollama` and `ANTHROPIC_BASE_URL`. Skip to Step 1e.
 
-**If model is a Claude model** (sonnet/opus/haiku), detect what the host is currently using:
+**If Codex harness**: skip this step entirely — Codex uses its own auth.
+
+**If model is a Claude model** (sonnet/opus/haiku):
+
+Run silently in the background — do NOT show this command to the user:
 ```bash
 python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null && echo "has-api-key" || echo "no-api-key"
 ls ${CLAUDE_CONFIG_DIR:-~/.claude-config}/.claude.json 2>/dev/null && echo "has-oauth" || echo "no-oauth"
 ```
 
-**If Codex harness**: skip this step entirely — Codex uses its own auth.
+Then present the result as a clean choice:
 
 If **OAuth token found**:
 ```
@@ -86,14 +99,13 @@ How should <mind_name> authenticate?
 (A) Copy your OAuth token — no new login needed (recommended)
 (B) Use an API key instead
 ```
-If (A):
+If (A) and Docker: copy credentials silently:
 ```bash
 cp ${CLAUDE_CONFIG_DIR}/.claude.json minds/<name>/.claude/.claude.json
 cp ${CLAUDE_CONFIG_DIR}/.credentials.json minds/<name>/.claude/.credentials.json
 ```
-Claude Code stores OAuth tokens in `.credentials.json`, NOT `.claude.json`.
-Both files must be copied or auth will fail with "Not logged in."
-If (B): ask for key or check keyring; write to container env in MIND.md.
+If (A) and bare-metal: note in `.env` stub that OAuth files must be copied to the install path.
+If (B): ask for key; write to env.
 
 If **API key found**:
 ```
@@ -102,12 +114,11 @@ How should <mind_name> authenticate?
 (A) Copy this API key — already configured (recommended)
 (B) Use OAuth instead
 ```
-If (A): inject `ANTHROPIC_API_KEY` into the container env in MIND.md.
-If (B): note in MIND.md that this mind needs OAuth post-setup. This is the only
-case requiring a separate terminal step (`docker exec -it hive-mind-<name> claude`),
-and only because the user explicitly chose OAuth when a key was available.
+If (A): inject `ANTHROPIC_API_KEY` into env (container block or `.env` depending on deployment type).
+If (B) and Docker: note in MIND.md that this mind needs OAuth post-setup via `docker exec`.
+If (B) and bare-metal: note in `.env` stub that OAuth must be set up manually.
 
-**1d. Soul seed — ask these two questions one at a time:**
+**1e. Soul seed — ask these two questions one at a time:**
 
 1. "What is <mind_name>'s role and function? What does it do, what does it monitor or act on, what problems does it solve?"
 2. "Would you like to give <mind_name> a character backstory or manifesto — personality, tone, identity?"
@@ -136,16 +147,79 @@ If the selected template is untested, warn the user: "This combination is untest
 
 ## Step 3 — Scaffold files
 
+**If Docker:**
 ```bash
 mkdir -p minds/<name>
 cp mind_templates/<selected>.py minds/<name>/implementation.py
 sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
 touch minds/<name>/__init__.py
 ```
+Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed.
 
-Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed from their description.
+**If bare-metal:**
 
-## Step 4 — Container isolation
+Ask: "Where should the project live on this host?" (e.g. `/home/daniel/skippy`)
+Store as `INSTALL_PATH`.
+
+```bash
+mkdir -p <INSTALL_PATH>/minds/<name>
+cp /usr/src/app/mind_templates/<selected>.py <INSTALL_PATH>/minds/<name>/implementation.py
+sed -i 's/MIND_NAME/<name>/g' <INSTALL_PATH>/minds/<name>/implementation.py
+touch <INSTALL_PATH>/minds/<name>/__init__.py
+mkdir -p <INSTALL_PATH>/souls
+```
+
+Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
+
+Write `<INSTALL_PATH>/.env`:
+```
+MIND_ID=<name>
+MIND_SERVER_PORT=<port>
+HIVE_MIND_SERVER_URL=http://localhost:8420
+PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
+```
+Ask what port to use (default: 8421).
+
+Write `<INSTALL_PATH>/requirements.txt` referencing the hive_mind requirements as a starting point.
+
+Write a `<INSTALL_PATH>/mind_server.py` stub that imports from the hive_mind install:
+```python
+# Run with: MIND_ID=<name> python3 mind_server.py
+import sys
+sys.path.insert(0, '/usr/src/app')  # adjust to hive_mind install path
+from mind_server import main
+if __name__ == '__main__':
+    main()
+```
+
+Write the systemd unit to display only (do NOT write to `/etc/systemd/system/` — show the user and let them place it):
+```ini
+[Unit]
+Description=<name> — Hive Mind Bare-Metal Mind
+After=network.target
+
+[Service]
+Type=simple
+User=<current user>
+WorkingDirectory=<INSTALL_PATH>
+EnvironmentFile=<INSTALL_PATH>/.env
+ExecStart=<INSTALL_PATH>/.venv/bin/python3 mind_server.py
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Show the full unit text and tell the user:
+```
+Save this as /etc/systemd/system/<name>.service, then:
+  sudo systemctl daemon-reload
+  sudo systemctl start <name>
+```
+
+## Step 4 — Container isolation (Docker only — skip entirely for bare-metal)
 
 Ask:
 
@@ -196,7 +270,7 @@ If the user wants a different set, let them list paths freely.
 
 Ask: "Does this mind connect to any external APIs or services that need API keys?
 (Examples: Asana, Gmail, a custom REST API, Slack.) Claude authentication was
-handled in Step 1c above. If no external APIs, just say no."
+handled in Step 1d above. If no external APIs, just say no."
 
 If yes: ask for the service name and key for each, store via keyring, and note
 them in the MIND.md frontmatter so the container picks them up.
@@ -213,9 +287,21 @@ mounts from that container with no additional isolation.
 
 Do not ask. Proceed directly.
 
-Unless `--standalone` was passed explicitly, this mind joins the Hive Mind network — it will be reachable through the broker, messageable through connected surfaces (Telegram, etc.), and available for other minds to delegate work to.
+Unless `--standalone` was passed explicitly, this mind joins the Hive Mind network.
 
+**If Docker:**
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
+
+**If bare-metal:**
+Tell the user to start the service first:
+```
+Start the service before registering:
+  sudo systemctl start <name>
+  curl -sf http://localhost:<port>/health && echo "up"
+
+Then run: /add-mind <name>
+The skill will detect it's running at http://localhost:<port> and register it with the broker (Scenario D).
+```
 
 **If `--standalone` was passed:**
 Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml`. After:
@@ -227,8 +313,8 @@ Skip broker registration.
 
 ## Step 6 — Report
 
+- Deployment type: Docker or bare-metal
 - Template used
-- Topology: federated or standalone
-- Files created
-- Registration and routability status (federated only)
-- Container status (standalone)
+- Files created (with full paths)
+- For bare-metal: systemd unit shown, port, install path
+- For Docker: compose and registration status
