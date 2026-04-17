@@ -20,11 +20,11 @@ Do this before any operation:
 BASE="http://hive-mind-remote-admin:8430"
 
 # Service auth token
-TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
+TOKEN=$(python3 -m keyring get hive-mind remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
 
 # Per-user SSH key — keyed by Telegram user ID
 TID="${TELEGRAM_USER_ID:-default}"
-PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}" 2>/dev/null)
+PKEY=$(python3 -m keyring get hive-mind "remote_admin_ssh_key_${TID}" 2>/dev/null)
 ```
 
 If `PKEY` is empty: this user has no enrolled SSH key yet. Direct them to run
@@ -75,7 +75,7 @@ echo "Session: $SID"
 **Bootstrap only (password — first connection to a new host before key enrollment):**
 ```bash
 # Retrieve one-time bootstrap password from keyring — never hardcode or display
-BPASS=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_bootstrap_${TID}" 2>/dev/null)
+BPASS=$(python3 -m keyring get hive-mind "remote_admin_bootstrap_${TID}" 2>/dev/null)
 SID=$(curl -s -X POST http://localhost:8430/sessions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -107,6 +107,12 @@ curl -s -X POST http://localhost:8430/sessions/<session_id>/exec \
   -H "Content-Type: application/json" \
   -d '{"command":"uname -a","timeout":30}' | jq .
 # Returns: {"stdout":"...","stderr":"...","exit_code":0}
+
+# For commands containing quotes or special characters, build the payload safely:
+# PAYLOAD=$(python3 -c "import json,sys; print(json.dumps({'command': sys.argv[1], 'timeout': 30}))" "echo 'hello'")
+# curl -s -X POST http://localhost:8430/sessions/<session_id>/exec \
+#   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+#   -d "$PAYLOAD" | jq .
 ```
 
 ## Close a session
@@ -128,18 +134,29 @@ websocat "ws://localhost:8430/sessions/<session_id>/stream?token=$TOKEN"
 
 ### Full connect-exec-close
 ```bash
-TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token)
+TOKEN=$(python3 -m keyring get hive-mind remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
 TID="${TELEGRAM_USER_ID:-default}"
-PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}")
+PKEY=$(python3 -m keyring get hive-mind "remote_admin_ssh_key_${TID}" 2>/dev/null)
 
 SID=$(curl -s -X POST http://localhost:8430/sessions \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d "{\"host\":\"192.168.1.x\",\"username\":\"pi\",\"private_key\":\"$PKEY\"}" \
   | jq -r '.session_id')
 
-run() { curl -s -X POST http://localhost:8430/sessions/$SID/exec \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d "{\"command\":\"$1\",\"timeout\":${2:-30}}" | jq -r '.stdout,.stderr'; }
+run() {
+  python3 -c "
+import sys, json, urllib.request
+payload = json.dumps({'command': sys.argv[1], 'timeout': int(sys.argv[2]) if len(sys.argv) > 2 else 30}).encode()
+req = urllib.request.Request(
+    'http://localhost:8430/sessions/$SID/exec',
+    data=payload,
+    headers={'Authorization': 'Bearer $TOKEN', 'Content-Type': 'application/json'},
+    method='POST'
+)
+with urllib.request.urlopen(req) as r:
+    import json as j; d = j.loads(r.read()); print(d.get('stdout',''), d.get('stderr',''), sep='')
+" "$1" "${2:-30}"
+}
 
 run "uptime"
 run "df -h /"
@@ -162,5 +179,5 @@ docker compose logs remote-admin
 
 `REMOTE_ADMIN_TOKEN` is set in `.env`. Store it in keyring too:
 ```bash
-python3 tools/stateless/secrets/secrets.py set remote_admin_token <token>
+python3 -m keyring set hive-mind remote_admin_token <token>
 ```
