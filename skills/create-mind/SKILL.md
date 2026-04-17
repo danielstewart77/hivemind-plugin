@@ -209,47 +209,21 @@ Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
 The mind runs as a subprocess inside the main hive_mind container. It inherits all
 mounts from that container with no additional isolation.
 
-## Step 5 — Network topology
+## Step 5 — Register with the network
 
-Ask now (not before):
+Do not ask. Proceed directly.
 
-```
-Should this mind join the Hive Mind network?
+Unless `--standalone` was passed explicitly, this mind joins the Hive Mind network — it will be reachable through the broker, messageable through connected surfaces (Telegram, etc.), and available for other minds to delegate work to.
 
-(A) Connected (recommended for most cases)
-    This mind joins the broker and becomes part of your Hive Mind system.
-    Ada can delegate tasks to it, you can message it through Telegram,
-    and other minds can route work to it. Whether this is your first mind
-    or your fifth, choose this if it's meant to be part of your setup.
-    Example: adding a coding mind, a research mind, or a specialist agent
-    alongside an existing Ada.
-
-(B) Isolated — completely independent, no network connection
-    This mind runs on its own with no broker, no routing, and no
-    relationship to the rest of the system. It can't receive messages
-    from other minds and won't appear in the network.
-    Example: spinning up a private Claude instance for a client or a
-    project that must be fully air-gapped from your main Hive Mind.
-    If you're unsure, you almost certainly want (A).
-```
-
-**If (A) connected (formerly "federated"):**
 Delegate to `/add-mind <name>` (it will detect Scenario C — directory exists — and handle compose generation, registration, and routability check).
 
-**If (B) isolated (formerly "standalone"):**
-Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml` with only the mind container and a lightweight message handler. No broker, no gateway, no Neo4j.
-
-After compose generation:
+**If `--standalone` was passed:**
+Delegate to `/generate-compose <name> --standalone` to generate a minimal `docker-compose.yml`. After:
 ```bash
 docker compose up -d --build
-```
-
-Confirm the mind container is running:
-```bash
 docker compose ps
 ```
-
-Note: isolated minds cannot be registered with the broker. Skip the broker registration step entirely.
+Skip broker registration.
 
 ## Step 6 — Report
 
