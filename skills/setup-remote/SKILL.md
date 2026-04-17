@@ -63,7 +63,7 @@ SUDO_KEY="remote_admin_sudo_$(echo $TARGET_HOST | tr '.' '_')"
 ## Step 2 — Get service token
 
 ```bash
-TOKEN=$(python3 tools/stateless/secrets/secrets.py get remote_admin_token 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
+TOKEN=$(python3 -m keyring get hive-mind REMOTE_ADMIN_TOKEN 2>/dev/null || echo "$REMOTE_ADMIN_TOKEN")
 ```
 
 If empty: "Set REMOTE_ADMIN_TOKEN in your .env and restart the remote-admin container, then re-run this skill."
@@ -74,7 +74,7 @@ If empty: "Set REMOTE_ADMIN_TOKEN in your .env and restart the remote-admin cont
 
 ```bash
 TID="${TELEGRAM_USER_ID:-default}"
-PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}" 2>/dev/null)
+PKEY=$(python3 -m keyring get hive-mind "remote_admin_ssh_key_${TID}" 2>/dev/null)
 ```
 
 **If `PKEY` is set OR `KEY_STATUS=existing`:** skip to Step 4.
@@ -83,8 +83,8 @@ PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TI
 
 Ask for a one-time bootstrap password for `$TARGET_USER@$TARGET_HOST`. Store temporarily:
 ```bash
-python3 tools/stateless/secrets/secrets.py set "remote_admin_bootstrap_${TID}" "$BOOTSTRAP_PASS"
-BPASS=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_bootstrap_${TID}")
+echo "$BOOTSTRAP_PASS" | python3 -m keyring set hive-mind "remote_admin_bootstrap_${TID}"
+BPASS=$(python3 -m keyring get hive-mind "remote_admin_bootstrap_${TID}" 2>/dev/null)
 ```
 
 Open bootstrap session with password:
@@ -106,11 +106,11 @@ curl -s -X POST $BASE/sessions/$BOOT_SID/exec \
   -d "{\"command\":\"mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$PUBKEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys\"}"
 
 # Store private key, clean up
-python3 tools/stateless/secrets/secrets.py set "remote_admin_ssh_key_${TID}" "$PRIVKEY"
-python3 tools/stateless/secrets/secrets.py delete "remote_admin_bootstrap_${TID}"
+echo "$PRIVKEY" | python3 -m keyring set hive-mind "remote_admin_ssh_key_${TID}"
+python3 -m keyring del hive-mind "remote_admin_bootstrap_${TID}"
 rm -f /tmp/hive_admin_${TID} /tmp/hive_admin_${TID}.pub
 curl -s -X DELETE $BASE/sessions/$BOOT_SID -H "Authorization: Bearer $TOKEN"
-PKEY=$(python3 tools/stateless/secrets/secrets.py get "remote_admin_ssh_key_${TID}")
+PKEY=$(python3 -m keyring get hive-mind "remote_admin_ssh_key_${TID}" 2>/dev/null)
 echo "SSH key enrolled."
 ```
 
