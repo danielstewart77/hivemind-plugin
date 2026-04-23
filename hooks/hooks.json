@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f ~/.claude-config/hooks/session_start_identity.sh ] && bash ~/.claude-config/hooks/session_start_identity.sh || true",
+            "command": "[ -f ~/.claude/hooks/session_start_identity.sh ] && bash ~/.claude/hooks/session_start_identity.sh || true",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f ~/.claude-config/hooks/soul_nudge.sh ] && bash ~/.claude-config/hooks/soul_nudge.sh || true"
+            "command": "[ -f ~/.claude/hooks/soul_nudge.sh ] && bash ~/.claude/hooks/soul_nudge.sh || true"
           }
         ]
       }

@@ -204,7 +204,7 @@ The plugin includes two lifecycle hooks configured during `/setup-mind`:
   - **Every 5 turns (nudge):** spawns a detached background process (`nohup ... & disown`) that runs `--load` then `--reflect --notify`. Session teardown is immediate.
   - **All other turns:** no action
 
-Hook scripts are installed at `~/.claude-config/hooks/` and apply to the mind that runs them.
+Hook scripts are installed at `~/.claude/hooks/` and apply to the mind that runs them.
 
 **Background reflection logs:** `/tmp/soul_nudge_<session_id>.log`
 If reflections stop appearing, check this log first.

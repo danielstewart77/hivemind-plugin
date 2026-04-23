@@ -15,7 +15,7 @@ Scans installed skill files for unresolved placeholders and replaces them with r
 
 ```bash
 # Locate the plugin skills directory
-SKILLS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude-config}/skills"
+SKILLS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
 
 # Find all SKILL.md files containing any placeholder
 grep -rl '{{' "$SKILLS_DIR" --include="*.md" 2>/dev/null

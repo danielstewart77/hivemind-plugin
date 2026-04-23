@@ -112,7 +112,7 @@ Auth was configured in `create-mind` Step 1c. Verify it worked:
 
 ```bash
 docker exec hive-mind-<name> sh -c \
-  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude-config $(which claude) --output-format stream-json --verbose --dangerously-skip-permissions -p "say hi" 2>&1' \
+  'CLAUDE_CONFIG_DIR=/home/hivemind/.claude $(which claude) --output-format stream-json --verbose --dangerously-skip-permissions -p "say hi" 2>&1' \
   | python3 -c "import sys,json; [print(o.get('result','')) for l in sys.stdin for o in [json.loads(l)] if o.get('type')=='result']"
 ```
 

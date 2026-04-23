@@ -178,10 +178,10 @@ Both hooks are installed silently for every mind during `setup-mind`. They are c
 
 | Hook | Trigger | Script | Description |
 |---|---|---|---|
-| `soul_load` | SessionStart | `~/.claude-config/hooks/soul_load.sh` | Loads the mind's identity from the knowledge graph at session start |
-| `soul_nudge` | Stop (every 5 turns) | `~/.claude-config/hooks/soul_nudge.sh` | Dispatches the `reflect` agent in the background to capture identity updates |
+| `soul_load` | SessionStart | `~/.claude/hooks/soul_load.sh` | Loads the mind's identity from the knowledge graph at session start |
+| `soul_nudge` | Stop (every 5 turns) | `~/.claude/hooks/soul_nudge.sh` | Dispatches the `reflect` agent in the background to capture identity updates |
 
-Hook scripts are installed to `~/.claude-config/hooks/` on the mind's host. They invoke `/self-reflect --load` and `/self-reflect --reflect` respectively.
+Hook scripts are installed to `~/.claude/hooks/` on the mind's host. They invoke `/self-reflect --load` and `/self-reflect --reflect` respectively.
 
 ---
 

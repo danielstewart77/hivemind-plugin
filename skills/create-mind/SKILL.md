@@ -110,7 +110,7 @@ curl -sf <ollama-address>/api/tags | python3 -c "import sys,json; [print(f'  ({c
 Run silently in the background — do NOT show this command to the user:
 ```bash
 python3 -m keyring get hive-mind ANTHROPIC_API_KEY 2>/dev/null && echo "has-api-key" || echo "no-api-key"
-ls ${CLAUDE_CONFIG_DIR:-~/.claude-config}/.claude.json 2>/dev/null && echo "has-oauth" || echo "no-oauth"
+ls ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json 2>/dev/null && echo "has-oauth" || echo "no-oauth"
 ```
 
 Then present the result as a clean choice:
@@ -340,7 +340,7 @@ Would you like to:
 
 If the user does NOT mount the full project directory, offer this fallback instead:
 ```
-  /home/hivemind/.claude-config  ←  <install_dir>/minds/<name>/.claude  (rw)  — per-mind config only
+  /home/hivemind/.claude  ←  <install_dir>/minds/<name>/.claude  (rw)  — per-mind config only
 ```
 
 Note: for Ollama-backed minds, no OAuth mount is needed — auth comes from env vars only.

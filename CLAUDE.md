@@ -23,7 +23,7 @@ This plugin distributes Hive Mind skills, agents, and lifecycle hooks. Skills ar
 
 ## Hooks
 
-Two lifecycle hooks (scripts installed at `~/.claude-config/hooks/` during setup):
+Two lifecycle hooks (scripts installed at `~/.claude/hooks/` during setup):
 
 - **SessionStart** — `sync_skills.py` symlinks all plugin skills/agents, then `session_start_identity.sh` loads the mind's identity from the knowledge graph
 - **Stop** — `soul_nudge.sh` dispatches an async background reflection cycle (`/self-reflect --reflect`)
@@ -36,6 +36,6 @@ Some skills contain `{{USER}}`, `{{PLANKA_PROJECT_ID}}`, and similar placeholder
 
 ## Config files written by skills
 
-- `~/.claude-config/plugins/installed_plugins.json` — plugin registry (managed by plugin system)
+- `~/.claude/plugins/installed_plugins.json` — plugin registry (managed by plugin system)
 - `~/.mcp.json` — MCP server connection (from `mcp.json.template`, filled by setup)
-- `~/.claude-config/hooks/` — identity lifecycle scripts (written by `setup-mind`)
+- `~/.claude/hooks/` — identity lifecycle scripts (written by `setup-mind`)

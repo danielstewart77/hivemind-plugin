@@ -37,4 +37,4 @@ Rename `mcp.json.template` to `.mcp.json` and replace the placeholder paths:
 
 ## Hook Scripts
 
-Hooks reference scripts at `~/.claude-config/hooks/`. These are created by `/hivemind:setup-mind`. If hooks fail at startup, verify those scripts exist.
+Hooks reference scripts at `~/.claude/hooks/`. These are created by `/hivemind:setup-mind`. If hooks fail at startup, verify those scripts exist.

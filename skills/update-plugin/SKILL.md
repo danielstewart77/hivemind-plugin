@@ -10,10 +10,10 @@ tools: Bash
 Pull the latest plugin version from GitHub, update the install record, remove stale cache folders, and refresh skill symlinks.
 
 ```bash
-PLUGIN_CACHE="$HOME/.claude-config/plugins/cache/danielstewart77/hivemind-plugin"
-INSTALLED_JSON="$HOME/.claude-config/plugins/installed_plugins.json"
-SKILLS_DIR="$HOME/.claude-config/skills"
-AGENTS_DIR="$HOME/.claude-config/agents"
+PLUGIN_CACHE="$HOME/.claude/plugins/cache/danielstewart77/hivemind-plugin"
+INSTALLED_JSON="$HOME/.claude/plugins/installed_plugins.json"
+SKILLS_DIR="$HOME/.claude/skills"
+AGENTS_DIR="$HOME/.claude/agents"
 REPO_URL="https://github.com/danielstewart77/hivemind-plugin.git"
 PLUGIN_KEY="hivemind@danielstewart77"
 
@@ -37,7 +37,7 @@ print(entries[0].get('version', '') if entries else '')
 if [ "$LATEST_SHORT" = "$CURRENT_SHORT" ]; then
   echo "Already up to date ($LATEST_SHORT)."
   # Refresh symlinks anyway in case they're stale
-  bash "$HOME/.claude-config/hooks/plugin_skills_sync.sh" 2>/dev/null || true
+  bash "$HOME/.claude/hooks/plugin_skills_sync.sh" 2>/dev/null || true
   echo "Skill symlinks verified."
   exit 0
 fi
@@ -84,8 +84,8 @@ done
 
 # Refresh skill and agent symlinks
 # Try the sync hook first (available after /setup-mind), fall back to manual symlinks
-if [ -f "$HOME/.claude-config/hooks/plugin_skills_sync.sh" ]; then
-  bash "$HOME/.claude-config/hooks/plugin_skills_sync.sh" 2>/dev/null
+if [ -f "$HOME/.claude/hooks/plugin_skills_sync.sh" ]; then
+  bash "$HOME/.claude/hooks/plugin_skills_sync.sh" 2>/dev/null
 else
   # Manual symlink refresh
   for skill_dir in "$TARGET_DIR/skills"/*/; do
