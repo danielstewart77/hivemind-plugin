@@ -12,6 +12,8 @@ user-invocable: true
 
 Set `STANDALONE=true` if `--standalone` is present.
 
+**CRITICAL: Never run `git remote`, `git clone`, or any git command from an existing hive_mind directory. Never cd into an existing installation to discover the repo URL. The GitHub URL is always `https://github.com/danielstewart77/hive_mind` — use it directly.**
+
 ## Step 1 — Gather info
 
 **The very first questions — ask these before harness, model, or anything else.**
