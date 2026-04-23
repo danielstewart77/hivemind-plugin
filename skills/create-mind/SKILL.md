@@ -174,14 +174,11 @@ If the selected template is untested, warn the user: "This combination is untest
 
 This is not a single mind — it's a full HiveMind system. The scaffold is:
 
-1. Clone or copy the hive_mind repo to `<INSTALL_PATH>`:
+1. Clone the hive_mind repo to `<INSTALL_PATH>`:
    ```bash
    git clone https://github.com/danielstewart77/hive_mind <INSTALL_PATH>
    ```
-   OR if the user prefers a local copy:
-   ```bash
-   cp -r <HIVE_MIND_PATH> <INSTALL_PATH>
-   ```
+   Do NOT copy from any existing local installation. Do NOT cd into any other directory. Do NOT run git commands from any path other than `<INSTALL_PATH>`.
 2. Create `<INSTALL_PATH>/config.yaml` (ask the user for port — default 8421, since 8420 is taken).
 3. Copy OAuth credentials to `<INSTALL_PATH>/.claude/` (same as bare-metal above).
 4. Create venv and install deps:

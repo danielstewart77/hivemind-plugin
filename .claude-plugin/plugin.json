@@ -1,7 +1,7 @@
 {
   "name": "hivemind",
   "description": "Hive Mind — skills, agents, and hooks for multi-mind AI orchestration, memory, development pipelines, and system operations.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": {
     "name": "danielstewart77"
   },
