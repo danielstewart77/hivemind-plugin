@@ -226,16 +226,94 @@ touch minds/<name>/__init__.py
 ```
 Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed.
 
-**If bare-metal:**
+**If bare-metal — standalone (STANDALONE=true or no existing instance):**
+
+Ask one question only:
+
+```
+Where should this Hive Mind be installed?
+(e.g. /home/daniel/hive_mind_skippy)
+```
+
+Store as `INSTALL_PATH`. The Hive Mind repo will be cloned here — the mind lives inside it at `<INSTALL_PATH>/minds/<name>/`. Do NOT ask for an existing hive_mind path. Do NOT reference or touch any other hive_mind installation on the host.
+
+```bash
+git clone https://github.com/danielstewart77/hive_mind <INSTALL_PATH>
+```
+
+Then scaffold the mind inside the cloned repo:
+
+```bash
+mkdir -p <INSTALL_PATH>/minds/<name>
+cp <INSTALL_PATH>/mind_templates/<selected>.py <INSTALL_PATH>/minds/<name>/implementation.py
+sed -i 's/MIND_NAME/<name>/g' <INSTALL_PATH>/minds/<name>/implementation.py
+touch <INSTALL_PATH>/minds/<name>/__init__.py
+```
+
+Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
+
+Ask what port to use (default: 8421).
+
+Write `<INSTALL_PATH>/.env`:
+```
+MIND_ID=<name>
+MIND_SERVER_PORT=<port>
+PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
+CLAUDE_CONFIG_DIR=<INSTALL_PATH>/.claude
+```
+
+Create venv and install deps — do not ask:
+```bash
+python3 -m venv <INSTALL_PATH>/.venv
+<INSTALL_PATH>/.venv/bin/pip install -r <INSTALL_PATH>/requirements.txt
+```
+
+Copy OAuth credentials — do not ask:
+```bash
+mkdir -p <INSTALL_PATH>/.claude
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.credentials.json <INSTALL_PATH>/.claude/.credentials.json
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json <INSTALL_PATH>/.claude/.claude.json 2>/dev/null || true
+```
+
+Show the systemd unit and pause — user must place it manually (requires sudo):
+```ini
+[Unit]
+Description=<name> — Hive Mind Standalone
+After=network.target
+
+[Service]
+Type=simple
+User=<current user>
+WorkingDirectory=<INSTALL_PATH>
+EnvironmentFile=<INSTALL_PATH>/.env
+ExecStart=<INSTALL_PATH>/.venv/bin/python3 <INSTALL_PATH>/mind_server.py
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```
+Save as /etc/systemd/system/<name>.service, then run:
+  sudo systemctl daemon-reload
+  sudo systemctl start <name>
+
+Tell me when it's running and I'll verify health and register it.
+```
+
+---
+
+**If bare-metal — hub-and-spoke (joining an existing instance):**
 
 Ask two questions — one at a time:
 
 1. "Where should this mind be installed?"
-   (e.g. `/home/daniel/skippy`)
-   Store as `INSTALL_PATH`. All code, runtime files, and credentials go here — nothing
-   is written anywhere else.
+   (e.g. `/home/daniel/my_mind`)
+   Store as `INSTALL_PATH`. All code, runtime files, and credentials go here.
 
-2. "Where is the Hive Mind project on this host?"
+2. "Where is the existing Hive Mind project on this host?"
    (e.g. `/home/daniel/Storage/Dev/hive_mind`)
    Store as `HIVE_MIND_PATH`. Used only to copy templates from — nothing is written there.
 
@@ -247,11 +325,12 @@ cp <HIVE_MIND_PATH>/mind_templates/<selected>.py <INSTALL_PATH>/minds/<name>/imp
 sed -i 's/MIND_NAME/<name>/g' <INSTALL_PATH>/minds/<name>/implementation.py
 touch <INSTALL_PATH>/minds/<name>/__init__.py
 mkdir -p <INSTALL_PATH>/souls
-# Copy the shared mind server — not a stub; the real thing
 cp <HIVE_MIND_PATH>/mind_server.py <INSTALL_PATH>/mind_server.py
 ```
 
 Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
+
+Ask what port to use (default: 8421).
 
 Write `<INSTALL_PATH>/.env`:
 ```
@@ -261,9 +340,21 @@ HIVE_MIND_SERVER_URL=http://localhost:8420
 PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
 CLAUDE_CONFIG_DIR=<INSTALL_PATH>/.claude
 ```
-Ask what port to use (default: 8421).
 
-Show the systemd unit to display only (do NOT write to `/etc/systemd/system/` — show the user and let them place it):
+Create venv and install deps — do not ask:
+```bash
+python3 -m venv <INSTALL_PATH>/.venv
+<INSTALL_PATH>/.venv/bin/pip install -r <HIVE_MIND_PATH>/requirements.txt
+```
+
+Copy OAuth credentials — do not ask:
+```bash
+mkdir -p <INSTALL_PATH>/.claude
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.credentials.json <INSTALL_PATH>/.claude/.credentials.json
+cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json <INSTALL_PATH>/.claude/.claude.json 2>/dev/null || true
+```
+
+Show the systemd unit and pause:
 ```ini
 [Unit]
 Description=<name> — Hive Mind Bare-Metal Mind
@@ -282,26 +373,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 ```
-
-Note: `WorkingDirectory=<INSTALL_PATH>` means Python finds `minds.<name>.implementation`
-there automatically — no sys.path manipulation, no hive_mind dependency at runtime.
-
-After writing all files above, immediately run these — do not ask:
-
-```bash
-# Create venv and install dependencies
-python3 -m venv <INSTALL_PATH>/.venv
-<INSTALL_PATH>/.venv/bin/pip install -r <HIVE_MIND_PATH>/requirements.txt
-```
-
-Then copy OAuth credentials without asking — this is required for the mind to authenticate:
-```bash
-mkdir -p <INSTALL_PATH>/.claude
-cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.credentials.json <INSTALL_PATH>/.claude/.credentials.json
-cp ${CLAUDE_CONFIG_DIR:-~/.claude}/.claude.json <INSTALL_PATH>/.claude/.claude.json 2>/dev/null || true
-```
-
-Then show the systemd unit and pause — the user must place it and start the service manually because it requires sudo:
 
 ```
 Save as /etc/systemd/system/<name>.service, then run:
