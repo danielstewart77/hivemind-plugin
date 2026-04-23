@@ -313,22 +313,11 @@ Tell me when it's running and I'll verify health and register it.
 
 ## Step 4 — Container isolation (Docker only — skip entirely for bare-metal)
 
-Ask:
+Each Docker mind runs in its own isolated container. This is not optional — there is no shared/subprocess mode.
 
-```
-Should this mind run in its own isolated container?
+Show the proposed mounts and ask to confirm or customize. Never say "defaults only" — always list explicit paths.
 
-(A) Own container (recommended) — each mind gets its own Docker container.
-    Best when you have multiple minds or want to control exactly which files
-    each mind can read and write. Lets you scope access per-mind.
-
-(B) Shared container — the mind runs as a subprocess inside the main
-    hive_mind container. Simpler setup, fine for a single mind or when
-    you don't need per-mind access control. Inherits all mounts from the
-    main container.
-```
-
-**If (A) own container:**
+**Proposed mounts:**
 
 Show the proposed mounts and ask to confirm or customize. Never say "defaults only"
 — always list explicit paths.
@@ -370,10 +359,6 @@ If no: skip.
 
 Write the `container:` block into the MIND.md frontmatter.
 Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
-
-**If (B) shared container:**
-The mind runs as a subprocess inside the main hive_mind container. It inherits all
-mounts from that container with no additional isolation.
 
 ## Step 5 — Register with the network
 
