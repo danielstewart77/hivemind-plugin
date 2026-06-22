@@ -47,8 +47,8 @@ sysctl -n hw.memsize | awk '{print $1/1024/1024/1024 " GB"}'
 ```
 
 Assessment:
-- **< 8 GB**: BLOCKER — "Hive Mind requires at least 8 GB of RAM. Claude Code, Neo4j, and Docker overhead will not fit."
-- **8-15 GB**: WARNING — "8 GB is tight. You can run a minimal deployment (gateway + one mind + Neo4j) but adding voice, Ollama, or multiple minds will cause swapping. 16 GB recommended."
+- **< 8 GB**: BLOCKER — "Hive Mind requires at least 8 GB of RAM. Claude Code, lucent, and Docker overhead will not fit."
+- **8-15 GB**: WARNING — "8 GB is tight. You can run a minimal deployment (comms gateway + lucent + one mind) but adding voice, Ollama, or multiple minds will cause swapping. 16 GB recommended."
 - **16+ GB**: OK — "Sufficient for a full deployment with multiple minds and services."
 
 ## Step 4 — GPU Detection

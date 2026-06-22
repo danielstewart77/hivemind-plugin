@@ -17,7 +17,8 @@ Detect all installed components:
 grep -A1 "^providers:" config.yaml
 
 # Minds
-curl -sf http://localhost:8420/broker/minds | jq -r ".[].name"
+CT=$(grep COMMS_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -sf http://localhost:8426/broker/minds -H "Authorization: Bearer $CT" | jq -r ".[].name"
 
 # Running containers
 docker compose ps --format "{{.Name}} {{.Status}}"
@@ -44,14 +45,15 @@ Sanitize .env — replace secret values with placeholders.
 for d in minds/*/; do
   name=$(basename "$d")
   [[ "$name" == "__pycache__" ]] && continue
-  if [ -f "$d/MIND.md" ]; then
+  if [ -f "$d/runtime.yaml" ]; then
     mkdir -p "hive-mind-export/minds/$name"
-    cp "$d/MIND.md" "hive-mind-export/minds/$name/"
+    cp "$d/runtime.yaml" "hive-mind-export/minds/$name/"
+    [ -f "$d/container/compose.yaml" ] && mkdir -p "hive-mind-export/minds/$name/container" && cp "$d/container/compose.yaml" "hive-mind-export/minds/$name/container/"
   fi
 done
 ```
 
-Copy MIND.md files only (not implementation.py — that comes from templates).
+Copy runtime.yaml (and the container compose fragment) only (not implementation.py — that comes from templates).
 
 ## Step 4 — Export secret manifest
 

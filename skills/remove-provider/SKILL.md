@@ -17,7 +17,8 @@ Verify it exists in config.yaml.
 
 Query the broker for minds whose model maps to this provider:
 ```bash
-curl -sf http://localhost:8420/broker/minds | jq ".[] | select(.harness | contains(\"$provider\"))"
+CT=$(grep COMMS_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -sf http://localhost:8426/broker/minds -H "Authorization: Bearer $CT" | jq ".[] | select(.harness | contains(\"$provider\"))"
 ```
 
 If minds depend on this provider, warn: "The following minds use this provider: <list>. Removing it will break them."

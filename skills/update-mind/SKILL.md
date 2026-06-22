@@ -13,14 +13,15 @@ user-invocable: true
 
 Verify the mind exists:
 ```bash
-curl -s http://localhost:8420/broker/minds | jq '.[] | select(.name == "<name>")'
+CT=$(grep COMMS_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -s http://localhost:8426/broker/minds -H "Authorization: Bearer $CT" | jq '.[] | select(.name == "<name>")'
 ```
 
 If not found, stop with error: "Mind '<name>' not registered. Use `/list-minds` to see available minds."
 
-Also read the current MIND.md:
+Also read the current runtime.yaml:
 ```bash
-cat minds/<name>/MIND.md
+cat minds/<name>/runtime.yaml
 ```
 
 ## Step 2 — Determine changes
@@ -29,16 +30,18 @@ Ask the user what to change:
 - Model
 - Harness
 - Gateway URL
-- Soul seed (the markdown body of MIND.md)
+- Soul seed (the markdown body of runtime.yaml)
 
-## Step 3 — Update MIND.md
+## Step 3 — Update runtime.yaml
 
-Read current `minds/<name>/MIND.md`, parse the frontmatter, apply the requested changes, write it back. Preserve the soul seed unless the user explicitly wants to change it.
+Read current `minds/<name>/runtime.yaml`, parse the fields, apply the requested changes, write it back. Preserve the soul seed unless the user explicitly wants to change it.
 
 ## Step 4 — Update broker
 
 ```bash
-curl -s -X PUT http://localhost:8420/broker/minds/<name> \
+AT=$(grep COMMS_ADMIN_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -s -X PUT http://localhost:8426/broker/minds/<name> \
+  -H "Authorization: Bearer $AT" \
   -H "Content-Type: application/json" \
   -d '{"model": "...", "harness": "...", "gateway_url": "..."}'
 ```

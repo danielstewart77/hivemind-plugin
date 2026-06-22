@@ -189,10 +189,12 @@ sudorun "usermod -aG docker $TARGET_USER"
 
 ---
 
-## Step 7 — Clone the repo
+## Step 7 — Clone the repos
 
+The nervous system (gateway + lucent) lives in a separate repo, cloned alongside hive_mind:
 ```bash
 run "git clone https://github.com/danielstewart77/hive_mind.git ~/hive_mind || (cd ~/hive_mind && git pull)" 60
+run "git clone https://github.com/danielstewart77/hive_nervous_system.git ~/hive_nervous_system || (cd ~/hive_nervous_system && git pull)" 60
 ```
 
 ---
@@ -201,9 +203,10 @@ run "git clone https://github.com/danielstewart77/hive_mind.git ~/hive_mind || (
 
 ```bash
 run "cd ~/hive_mind && cp .env.example .env"
+run "cd ~/hive_nervous_system && cp .env.example .env"
 ```
 
-Ask for required config values (Anthropic API key, Neo4j password, etc.) and write to remote `.env`:
+Ask for required config values (Anthropic API key, lucent/comms bearer tokens, etc.) and write to the remote `.env` files:
 ```bash
 run "cd ~/hive_mind && sed -i 's/ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=$ANTHROPIC_KEY/' .env"
 run "cd ~/hive_mind && echo 'COMPOSE_PROFILES=standalone' >> .env"  # if standalone
@@ -213,23 +216,30 @@ run "cd ~/hive_mind && echo 'COMPOSE_PROFILES=standalone' >> .env"  # if standal
 
 ## Step 9 — Start services
 
+Bring up the nervous system first (it owns the `hivemind` external network), then the body:
 ```bash
+sudorun "bash -c 'docker network create hivemind 2>/dev/null; true'"
+sudorun "bash -c 'cd ~/hive_nervous_system && docker compose pull && docker compose up -d'" 120
 sudorun "bash -c 'cd ~/hive_mind && docker compose pull'" 120
 sudorun "bash -c 'cd ~/hive_mind && docker compose up -d'" 60
 ```
 
-Verify:
+Verify the gateway (comms) is up — every non-health route needs the bearer token:
 ```bash
-run "curl -sf http://localhost:8420/sessions > /dev/null && echo UP || echo DOWN"
+CT=$(run "grep COMMS_BEARER_TOKEN ~/hive_nervous_system/.env | cut -d= -f2")
+run "curl -sf http://localhost:8426/sessions -H 'Authorization: Bearer $CT' > /dev/null && echo UP || echo DOWN"
 ```
 
 ---
 
 ## Step 10 — Register mind (federated only)
 
+Broker register needs the admin token:
 ```bash
-REMOTE_MIND_URL="http://$TARGET_HOST:8420"
-curl -s -X POST http://localhost:8420/broker/minds \
+AT=$(run "grep COMMS_ADMIN_BEARER_TOKEN ~/hive_nervous_system/.env | cut -d= -f2")
+REMOTE_MIND_URL="http://$TARGET_HOST:8426"
+curl -s -X POST http://localhost:8426/broker/minds \
+  -H "Authorization: Bearer $AT" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"$MIND_NAME\",\"url\":\"$REMOTE_MIND_URL\"}"
 ```

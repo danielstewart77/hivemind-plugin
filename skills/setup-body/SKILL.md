@@ -12,7 +12,8 @@ Choose and deploy body components. At least one communication surface is needed.
 ## Step 1 — Prerequisite check
 
 ```bash
-curl -sf http://localhost:8420/sessions > /dev/null || echo "Gateway not reachable. Run /setup-nervous-system first."
+CT=$(grep COMMS_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -sf http://localhost:8426/sessions -H "Authorization: Bearer $CT" > /dev/null || echo "Gateway not reachable. Run /setup-nervous-system first."
 ```
 
 ## Step 2 — Scan current state
@@ -117,7 +118,7 @@ Which components would you like to set up? (comma-separated numbers, or 'all')
 **Open WebUI (4):**
 - Pull and run Open WebUI container:
   ```bash
-  docker run -d --name open-webui --network hive_mind_net -p 3000:8080 ghcr.io/open-webui/open-webui:main
+  docker run -d --name open-webui --network hivemind -p 3000:8080 ghcr.io/open-webui/open-webui:main
   ```
 - Configure to connect to the gateway API.
 - Verify: `curl -sf http://localhost:3000`

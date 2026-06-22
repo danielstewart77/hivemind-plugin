@@ -44,8 +44,8 @@ through the session exactly as you would locally.
 ```
 What kind of install is this?
 
-(A) New instance — full Hive Mind install. Gateway, broker, Neo4j, minds,
-    communication surfaces — everything. Each Hive Mind instance is fully
+(A) New instance — full Hive Mind install. Nervous system (lucent + comms),
+    minds, communication surfaces — everything. Each Hive Mind instance is fully
     independent. During mind setup you can optionally register minds from
     other Hive Mind instances so they can message each other — but there is
     no system-level link between instances. Choose this for any new machine.
@@ -58,7 +58,7 @@ What kind of install is this?
 Store as `INSTALL_TYPE` (values: `instance`, `spoke`).
 
 - **instance**: run every step below in full.
-- **spoke**: skip Nervous System and Neo4j; go straight to Config → Auth →
+- **spoke**: skip the Nervous System step; go straight to Config → Auth →
   Provider → Mind (single mind only), then configure the connection to the
   managing instance.
 
@@ -73,22 +73,24 @@ Default (no argument): show the menu.
 ## Step 2 — Show menu with quick health scan
 
 ```bash
-gw=$(curl -sf http://localhost:8420/sessions > /dev/null 2>&1 && echo "UP" || echo "DOWN")
-neo=$(curl -sf http://localhost:7474 > /dev/null 2>&1 && echo "UP" || echo "DOWN")
+# lucent /health needs no auth; comms /health is bearer-gated.
+CT=$(grep -h COMMS_BEARER_TOKEN */.env ~/Storage/Dev/hive_nervous_system/.env 2>/dev/null | head -1 | cut -d= -f2)
+luc=$(curl -sf http://localhost:8425/health > /dev/null 2>&1 && echo "UP" || echo "DOWN")
+comms=$(curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/health > /dev/null 2>&1 && echo "UP" || echo "DOWN")
 dk=$(docker info > /dev/null 2>&1 && echo "UP" || echo "DOWN")
-minds=$(curl -sf http://localhost:8420/broker/minds 2>/dev/null | jq length 2>/dev/null || echo 0)
+minds=$(curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/broker/minds 2>/dev/null | jq length 2>/dev/null || echo 0)
 ```
 
 ```
 Hive Mind Setup
 ===============
 
-Quick scan: Gateway [$gw]  Neo4j [$neo]  Docker [$dk]  Minds [$minds]
+Quick scan: lucent [$luc]  comms [$comms]  Docker [$dk]  Minds [$minds]
 
-1. Prerequisites     — hardware, OS, Docker, Git         [not checked]
+1. Prerequisites     — hardware, OS, Docker, Git          [not checked]
 2. Configuration     — config.yaml, .env, compose profile [not generated]
 3. Authentication    — Claude Code auth tokens            [not configured]
-4. Nervous System    — gateway, broker, Neo4j, MCP        [$gw]
+4. Nervous System    — lucent + comms                     [$luc/$comms]
 5. Providers         — Anthropic, OpenAI, Ollama          [check config]
 6. Body              — surfaces, integrations, services   [check containers]
 7. Minds             — AI minds                           [$minds registered]

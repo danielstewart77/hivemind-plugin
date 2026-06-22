@@ -19,8 +19,11 @@ Check if `config.yaml` already exists:
 ## Step 2 — Gather inputs
 
 Ask the user for:
-- **Server port** (default 8420). Check if port is in use: `ss -tlnp | grep :<port>`. If conflict, suggest next available port.
 - **Installation directory** — where the project root lives (default: current directory)
+
+The gateway no longer lives in `hive_mind` — it is the `comms` container in the
+nervous system (host `8426`). `config.yaml` carries no gateway port; surfaces
+and minds reach comms via `COMMS_URL`, set during `/setup-body` and `/setup-mind`.
 
 After the user specifies the installation directory, check whether `docker-compose.yml` exists there:
 
@@ -47,10 +50,12 @@ git clone https://github.com/danielstewart77/hive_mind <install_dir>
   > Choice [A]:"
 
   If A (default): ask for one parent directory (default: `~/hive_mind_data`).
-  Subfolders `neo4j/`, `models/`, and `mind/` are created automatically under it.
+  Subfolders `models/` and `mind/` are created automatically under it. (The
+  knowledge graph and vector store are SQLite files owned by the nervous system
+  under `hive_nervous_system/data` — no Neo4j directory is needed.)
   Create the directories if they don't exist:
   ```bash
-  mkdir -p <data_dir>/neo4j <data_dir>/models <data_dir>/mind
+  mkdir -p <data_dir>/models <data_dir>/mind
   ```
 
   If B: use Docker named volumes — no path needed.
@@ -61,7 +66,7 @@ git clone https://github.com/danielstewart77/hive_mind <install_dir>
 
 Write a clean `config.yaml` with:
 ```yaml
-server_port: <port>
+server_port: 8420   # legacy field, retained for compatibility; the live gateway is comms (8426)
 idle_timeout_minutes: 30
 max_sessions: 10
 default_model: sonnet

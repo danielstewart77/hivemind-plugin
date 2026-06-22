@@ -33,9 +33,15 @@ remote machine via SSH — it is not for configuring local minds.
 
 ## Step 1 — Prerequisite check
 
+The gateway/broker is the `comms` container (host `8426`), bearer-gated. Read the
+tokens from the nervous-system repo's `.env`:
+
 ```bash
-curl -sf http://localhost:8420/sessions > /dev/null || echo "Gateway not reachable. Run /setup-nervous-system first."
-curl -sf http://localhost:8420/broker/minds | jq length
+NS=~/Storage/Dev/hive_nervous_system        # adjust to the nervous-system repo path
+CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/health > /dev/null || echo "comms not reachable. Run /setup-nervous-system first."
+curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/broker/minds | jq length
 ```
 
 **If `spoke`:** skip — no local gateway or broker required. Verify Docker is running.
@@ -48,10 +54,10 @@ Show only minds that are actually running as containers — do NOT surface mind 
 
 ```bash
 # Minds registered in the broker (actually deployed)
-curl -sf http://localhost:8420/broker/minds 2>/dev/null | jq -r '.[].name' || echo "(none yet)"
+curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/broker/minds 2>/dev/null | jq -r '.[].name' || echo "(none yet)"
 
 # Running mind containers
-docker ps --filter "label=hive-mind.role=mind" --format "{{.Names}}" 2>/dev/null || echo "(none running)"
+docker ps --format "{{.Names}}" 2>/dev/null | grep '^hive-mind-' || echo "(none running)"
 ```
 
 **If `spoke`:** skip — no broker running yet.
@@ -72,7 +78,7 @@ What would you like to do?
 3. Register a mind from another Hive Mind instance — no local install. Adds a
    contact entry so minds on this machine can send messages to a mind running
    on a different Hive Mind instance. You'll need the mind's name and the other
-   instance's gateway URL (e.g. http://192.168.4.64:8420).
+   instance's gateway URL (e.g. http://192.168.4.64:8426).
 ```
 
 There is no skip option. After each mind is set up, ask "Would you like to add another mind?" and loop back here until the user says no.
@@ -89,7 +95,7 @@ There is no skip option. After each mind is set up, ask "Would you like to add a
   ```yaml
   remote_minds:
     - name: ada
-      gateway: http://192.168.4.64:8420
+      gateway: http://192.168.4.64:8426
   ```
 - Confirm: "Registered. Minds on this instance can now address messages to `ada` at the remote gateway."
 - Skip Steps 5, 5b, 6, 7 (no local container to configure)

@@ -140,7 +140,7 @@ How should <mind_name> authenticate?
 (B) Use OAuth instead
 ```
 If (A): inject `ANTHROPIC_API_KEY` into env (container block or `.env` depending on deployment type).
-If (B) and Docker: note in MIND.md that this mind needs OAuth post-setup via `docker exec`.
+If (B) and Docker: note in `runtime.yaml` that this mind needs OAuth post-setup via `docker exec`.
 If (B) and bare-metal: note in `.env` stub that OAuth must be set up manually.
 
 **1e. Soul seed — ask these two questions one at a time:**
@@ -181,7 +181,9 @@ This is not a single mind — it's a full HiveMind system. The scaffold is:
    git clone https://github.com/danielstewart77/hive_mind <INSTALL_PATH>
    ```
    Do NOT copy from any existing local installation. Do NOT cd into any other directory. Do NOT run git commands from any path other than `<INSTALL_PATH>`.
-2. Create `<INSTALL_PATH>/config.yaml` (ask the user for port — default 8421, since 8420 is taken).
+2. Create `<INSTALL_PATH>/config.yaml`. A standalone instance needs its own
+   nervous system; if comms on this host already binds 8426, give the standalone
+   one a non-conflicting comms port.
 3. Copy OAuth credentials to `<INSTALL_PATH>/.claude/` (same as bare-metal above).
 4. Create venv and install deps:
    ```bash
@@ -218,12 +220,16 @@ Go directly to Step 6 — Report.
 
 **If Docker (LOCATION=docker, not standalone):**
 ```bash
-mkdir -p minds/<name>
+mkdir -p minds/<name>/container
 cp mind_templates/<selected>.py minds/<name>/implementation.py
 sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
 touch minds/<name>/__init__.py
 ```
-Write `minds/<name>/MIND.md` with frontmatter from user's choices and soul seed.
+Write `minds/<name>/runtime.yaml` (name, mind_id [the generated UUID],
+default_model, provider, runtime_config_dir, and a provider-specific `env`
+block — e.g. `OLLAMA_BASE_URL` for ollama). The container fragment and broker
+registration are handled in Steps 4–5 via `/add-mind`. Write the soul seed to
+`souls/<name>.md`.
 
 **If bare-metal — standalone (STANDALONE=true or no existing instance):**
 
@@ -333,9 +339,9 @@ Ask what port to use (default: 8421).
 
 Write `<INSTALL_PATH>/.env`:
 ```
-MIND_ID=<name>
+MIND_ID=<uuid>
 MIND_SERVER_PORT=<port>
-HIVE_MIND_SERVER_URL=http://localhost:8420
+HIVE_MIND_SERVER_URL=http://localhost:8426
 PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
 CLAUDE_CONFIG_DIR=<INSTALL_PATH>/.claude
 ```
@@ -423,12 +429,16 @@ Ask: "Does this mind connect to any external APIs or services that need API keys
 (Examples: Asana, Gmail, a custom REST API, Slack.) Claude authentication was
 handled in Step 1d above. If no external APIs, just say no."
 
-If yes: ask for the service name and key for each, store via keyring, and note
-them in the MIND.md frontmatter so the container picks them up.
+If yes: ask for the service name and key for each, store via keyring, and add
+them to the `env` block of `minds/<name>/runtime.yaml` so the container picks
+them up.
 If no: skip.
 
-Write the `container:` block into the MIND.md frontmatter.
-Note: `/add-mind` will call `/generate-compose` to update docker-compose.yml.
+Write the per-mind Compose fragment `minds/<name>/container/compose.yaml` (a
+single-service document joining the external `hivemind` network, with
+`HIVE_MIND_SERVER_URL=http://hive-comms:8424` and `MIND_SERVER_PORT` set).
+Note: `/add-mind` will call `/generate-compose` to wire the fragment into the
+top-level `docker-compose.yml` include list and register the mind.
 
 ## Step 5 — Register with the network
 

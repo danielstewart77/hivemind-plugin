@@ -11,7 +11,8 @@ Query the broker for all registered minds and display them.
 ## Step 1 — Fetch and display
 
 ```bash
-curl -s http://localhost:8420/broker/minds | jq .
+CT=$(grep COMMS_BEARER_TOKEN ~/Storage/Dev/hive_nervous_system/.env | cut -d= -f2)
+curl -s http://localhost:8426/broker/minds -H "Authorization: Bearer $CT" | jq .
 ```
 
 Format each mind as a table:

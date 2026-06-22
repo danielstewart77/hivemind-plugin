@@ -9,6 +9,21 @@ user-invocable: true
 
 `$ARGUMENTS[0]` = mind name. Ask if missing.
 
+Every mind is its own process — a container, a bare-metal service, or a remote
+host. There is no shared/subprocess mode. Each mind runs its own
+`implementation.py` as an HTTP server (FastAPI) that comms dispatches sessions
+to over the `hivemind` network.
+
+The gateway/broker is the `comms` container — host `http://localhost:8426`,
+in-container `http://hive-comms:8424`. Broker writes need the admin token; reads
+and session calls need the regular token:
+
+```bash
+NS=~/Storage/Dev/hive_nervous_system        # adjust to the nervous-system repo path
+CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+```
+
 ## Step 1 — Determine scenario
 
 Check if `minds/$ARGUMENTS[0]/` directory exists:
@@ -24,131 +39,137 @@ Check if `minds/$ARGUMENTS[0]/` directory exists:
 
 - **Directory exists → Scenario C (re-registration).** The mind folder is already there but may not be in the broker.
 
-Collect from the user:
+Collect from the user (or read from `minds/<name>/runtime.yaml` for Scenario C):
 - `name` (from argument)
-- `gateway_url` (default `http://hive_mind:8420` for local, ask for remote)
-- `model` (e.g. `sonnet`, `gpt-oss:20b-32k`)
-- `harness` (e.g. `claude_cli_claude`, `codex_cli_codex`)
+- `mind_id` — the durable UUID. For a new mind, generate one: `python3 -c "import uuid;print(uuid.uuid4())"`. For Scenario C read it from `runtime.yaml`.
+- `gateway_url` — where comms dispatches:
+  - Docker (A): `http://hive-mind-<name>:<port>` (the container name on the `hivemind` network; port = the mind's `MIND_SERVER_PORT`, e.g. 8421)
+  - Bare-metal (D): `http://localhost:<port>`
+  - Remote (B): the remote host's URL, ask the user
+- `model` (e.g. `sonnet`, `gpt-oss:20b`)
+- `harness` (e.g. `claude`, `codex`)
 
 For Scenario B: verify the external gateway is reachable before proceeding:
 ```bash
-curl -sf <gateway_url>/broker/minds > /dev/null && echo "Reachable" || echo "UNREACHABLE"
+curl -sf -H "Authorization: Bearer $CT" <gateway_url>/health > /dev/null && echo "Reachable" || echo "UNREACHABLE"
 ```
 
-## Step 2 — Create MIND.md (Scenarios A and B)
+## Step 2 — Scaffold runtime config (Scenarios A and B)
 
-Write `minds/<name>/MIND.md`:
+Each mind is configured by `minds/<name>/runtime.yaml`, not a MIND.md file:
 
-**Scenario A (new local):**
-```markdown
----
+```yaml
 name: <name>
-model: <model>
-harness: <harness>
-gateway_url: <gateway_url>
----
-
-# <Name>
-
-<Ask the user for a brief identity description to use as the soul seed>
+mind_id: <uuid>
+default_model: <model>
+provider: <anthropic | ollama | codex>
+runtime_config_dir: /usr/src/app/minds/<name>/.codex   # or .claude per harness
+env:
+  # provider-specific, e.g. for ollama:
+  OLLAMA_BASE_URL: http://<ollama-host>:11434/v1
 ```
 
-**Scenario B (remote):**
-```markdown
----
-name: <name>
-model: <model>
-harness: <harness>
-gateway_url: <gateway_url>
-remote: true
----
-```
+**Scenario B (remote):** the mind lives on the other host; only register the
+contact here. Add `remote: true` to your notes and skip Steps 3–4.
 
-**Scenario D (bare-metal local):**
-
-Ask the user for the port the mind is running on (e.g. `8421`). Set `gateway_url` to `http://localhost:<port>`.
-
-Confirm the service is up before proceeding:
+**Scenario D (bare-metal local):** the mind project lives at its own path on the
+host. Ask for the port and confirm it is up before registering:
 ```bash
 curl -sf http://localhost:<port>/health && echo "UP" || echo "NOT RUNNING — start the service first"
 ```
+If not running, stop and tell the user to start the service, then re-run `/add-mind`. Skip to Step 5.
 
-If not running, stop and tell the user to start the service, then re-run `/add-mind`.
+For Scenario C: `runtime.yaml` already exists — skip to Step 4.
 
-No MIND.md is written inside the hive_mind project — the mind project lives at its own path on the host. Skip to Step 5.
+## Step 3 — Scaffold implementation (Scenario A only)
 
-For Scenario C: MIND.md already exists — skip to Step 3.
-
-## Step 3 — Scaffold implementation.py (Scenario A only)
-
-List available templates:
+Pick the template matching harness + model family. NOTE: only
+`codex_cli_ollama.py` currently embeds the in-container FastAPI server; the
+Claude templates still need that server ported in before they can run as a
+container (see the mind-templates code task). Copy the template:
 ```bash
-ls mind_templates/*.py
-```
-
-Ask the user which template matches their harness + model family. Copy it:
-```bash
-mkdir -p minds/<name>
+mkdir -p minds/<name>/container
 cp mind_templates/<selected>.py minds/<name>/implementation.py
-```
-
-Replace the `MIND_NAME` placeholder:
-```bash
 sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
+touch minds/<name>/__init__.py
 ```
 
-Create `minds/<name>/__init__.py` (empty file).
+Write `minds/<name>/container/compose.yaml` — a single-service fragment that
+joins the external `hivemind` network and points at comms:
+```yaml
+services:
+  <name>:
+    image: hive_mind:latest
+    container_name: hive-mind-<name>
+    working_dir: /usr/src/app
+    environment:
+      - MIND_ID=<uuid>
+      - MIND_SERVER_PORT=<port>
+      - HIVE_MIND_SERVER_URL=http://hive-comms:8424
+      - PYTHONPATH=/usr/src/app/vendor
+      - PYTHONNOUSERSITE=1
+    volumes:
+      - <project-dir>:/usr/src/app:rw
+    networks:
+      - hivemind
+    restart: unless-stopped
+    command: ["/opt/venv/bin/python3", "-m", "minds.<name>.implementation"]
 
-## Step 4 — Generate compose (Scenario A only)
+networks:
+  hivemind:
+    external: true
+    name: hivemind
+```
 
-Skip this step for Scenarios B, C, and D.
+## Step 4 — Wire and start the container (Scenario A only)
 
-For Scenario A: check if the MIND.md has a `container:` block. If it does, run `/generate-compose` to update `docker-compose.yml` with the new mind's service definition, then start the container:
-
+Wire the fragment into the federated compose and start it:
 ```bash
-docker compose up -d <name>
+# add minds/<name>/container/compose.yaml to docker-compose.yml include list
+/generate-compose
+docker compose -f minds/<name>/container/compose.yaml up -d
+curl -sf http://localhost:<port>/health && echo "UP" || docker logs hive-mind-<name> --tail 30
 ```
-
-If the mind does NOT have a `container:` block, it runs inside the main `hive_mind` container (subprocess mode) — skip this step.
 
 ## Step 5 — Register with broker
 
 ```bash
-curl -s -X POST http://localhost:8420/broker/minds \
-  -H "Content-Type: application/json" \
-  -d '{"name":"<name>","gateway_url":"<gateway_url>","model":"<model>","harness":"<harness>"}'
+curl -s -X POST http://localhost:8426/broker/minds \
+  -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
+  -d '{"mind_id":"<uuid>","name":"<name>","gateway_url":"<gateway_url>","model":"<model>","harness":"<harness>"}'
 ```
 
 If the response contains an error, stop and surface it to the user.
 
 ## Step 6 — Verify routability
 
-Create a test session:
+Create a test session (note the response field is `id`):
 ```bash
-curl -s -X POST http://localhost:8420/sessions \
-  -H "Content-Type: application/json" \
-  -d '{"owner_type":"test","owner_ref":"add-mind-verify","client_ref":"add-mind","mind_id":"<name>"}'
+curl -s -X POST http://localhost:8426/sessions \
+  -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
+  -d '{"owner_type":"test","owner_ref":"add-mind-verify","client_ref":"add-mind","mind_id":"<uuid>"}'
 ```
 
-Extract the session ID from the response. Send a test message:
+Send a test message (SSE stream) to the returned session id:
 ```bash
-curl -s -X POST http://localhost:8420/sessions/<session_id>/message \
-  -H "Content-Type: application/json" \
+curl -s -N -X POST http://localhost:8426/sessions/<session_id>/message \
+  -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
   -d '{"content":"Respond with exactly: registration verified."}'
 ```
 
-Check if the response stream contains "registration verified". Then clean up:
+Check the stream for "registration verified", then clean up:
 ```bash
-curl -s -X DELETE http://localhost:8420/sessions/<session_id>
+curl -s -X DELETE -H "Authorization: Bearer $AT" http://localhost:8426/sessions/<session_id>
 ```
 
-If routability check fails, surface the error clearly but do NOT roll back the registration — the mind is registered, it just couldn't respond yet.
+If routability check fails, surface the error clearly but do NOT roll back the
+registration — the mind is registered, it just couldn't respond yet.
 
 ## Step 7 — Report
 
 Summarize:
 - Scenario handled (A=Docker / B=Remote / C=Re-registration / D=Bare-metal)
-- Files created (MIND.md, implementation.py, __init__.py — Scenario A only)
-- Containerised (yes/no, compose updated — Scenario A only)
+- Files created (runtime.yaml, implementation.py, container/compose.yaml, __init__.py — Scenario A only)
+- Containerised (yes/no, compose include updated — Scenario A only)
 - Broker registration status
 - Routability verification result
