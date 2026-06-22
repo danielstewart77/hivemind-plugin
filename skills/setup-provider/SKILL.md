@@ -1,6 +1,6 @@
 ---
 name: setup-provider
-description: Configure AI providers — Anthropic, OpenAI, Azure OpenAI, Ollama, or OpenAI-compatible endpoints. At least one provider is required. Stores API keys in the keyring and verifies connectivity.
+description: Configure AI providers — Anthropic, OpenAI, a custom proxy/gateway (Azure or any OpenAI/Anthropic-compatible endpoint), or Ollama. At least one provider is required. Stores API keys in the keyring and verifies connectivity.
 argument-hint: "[provider-name]"
 user-invocable: true
 tools: Bash, Read
@@ -21,11 +21,11 @@ Present all available providers with current status:
 
 ```
 Available providers:
-1. Anthropic          [not configured]  — Required for Claude CLI/SDK harnesses
-2. OpenAI             [not configured]  — Required for Codex CLI harness native models
-3. Azure OpenAI       [not configured]  — Enterprise/corporate OpenAI endpoints
+1. Anthropic          [not configured]  — Claude harness, direct to api.anthropic.com (OAuth or key)
+2. OpenAI             [not configured]  — Codex harness, direct to api.openai.com (OAuth or key)
+3. Custom proxy       [not configured]  — One gateway fronting both harnesses (Azure proxy, LiteLLM,
+                                          vLLM, Groq, Together, etc.). API-only, no OAuth.
 4. Ollama             [not configured]  — Local model hosting (no API key needed)
-5. OpenAI-compatible  [not configured]  — Generic endpoint (Groq, Together AI, vLLM, etc.)
 
 You need at least one. Which would you like to configure?
 (comma-separated numbers, or "all")
@@ -33,7 +33,7 @@ You need at least one. Which would you like to configure?
 
 If `$ARGUMENTS[0]` is provided, skip to that provider directly.
 
-## Step 2 — Anthropic (if selected)
+## Step 2 — Anthropic (direct)
 
 First check the auth method recorded by setup-auth:
 ```bash
@@ -44,7 +44,7 @@ print(cfg.get('auth', {}).get('method', ''))
 "
 ```
 
-If auth method is already `oauth` or `api-key` from setup-auth, use that — skip the question below.
+If auth method is already `oauth` or `api-key` from setup-auth, use that — skip the question below. If it is `proxy`, go to Step 4 instead.
 
 Otherwise ask:
 
@@ -83,7 +83,7 @@ curl -sf https://api.anthropic.com/v1/models \
 ```
 - Add to config.yaml as above.
 
-## Step 3 — OpenAI (if selected)
+## Step 3 — OpenAI (direct)
 
 Ask:
 
@@ -124,16 +124,92 @@ providers:
       OPENAI_API_KEY: "<from-keyring>"
 ```
 
-## Step 4 — Azure OpenAI (if selected)
+## Step 4 — Custom proxy / gateway (both harnesses, API-only)
 
-Ask for: endpoint URL, API key, deployment name, API version.
-Store API key in keyring. Verify endpoint connectivity.
-Add to config.yaml with Azure-specific env overrides.
+This is the path for a corporate or self-hosted gateway that fronts the model
+backends — an Azure proxy, LiteLLM, vLLM, Groq, Together AI, or any
+OpenAI/Anthropic-compatible endpoint. It is **API-only, no OAuth**: each harness
+is pointed at the proxy's base URL and carries a custom token as a `Bearer`
+header. This is the validated University deployment path.
+
+**Two protocol requirements** (the gateway must expose both if you run both harnesses):
+- **Claude** speaks the Anthropic Messages shape — the proxy must serve a
+  `/v1/messages` route.
+- **Codex** speaks the OpenAI **Responses** API — the proxy must serve a
+  `/v1/responses` route. The older chat-completions wire is **not supported** as
+  of Codex 0.141 (`wire_api = "chat"` is rejected at config load).
+
+### Collect once
+
+Ask for: the proxy base URL (e.g. `https://proxy.company.com`), the custom token,
+and the model name(s) the proxy serves. Store the token in the keyring:
+```bash
+python3 -m keyring set hive-mind PROXY_API_KEY
+```
+
+### Wire Claude (Anthropic harness)
+
+Claude Code reads `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` and posts to
+`<base>/v1/messages` with `Authorization: Bearer <token>`. Add to config.yaml —
+`mind_server` injects these into the spawned harness subprocess:
+```yaml
+providers:
+  proxy:
+    env:
+      ANTHROPIC_BASE_URL: "https://proxy.company.com"
+      ANTHROPIC_AUTH_TOKEN: "<from-keyring PROXY_API_KEY>"
+      ANTHROPIC_API_KEY: ""          # cleared so it can't shadow the token
+models:
+  sonnet: proxy
+  opus: proxy
+  haiku: proxy
+```
+Verify the route is live and the token is accepted (prompt as arg, stdin from
+`/dev/null` — both CLIs slurp piped stdin):
+```bash
+ANTHROPIC_BASE_URL="https://proxy.company.com" ANTHROPIC_AUTH_TOKEN="<token>" ANTHROPIC_API_KEY= \
+  claude -p "Reply with exactly: PROXY-OK" </dev/null
+```
+
+### Wire Codex (OpenAI harness)
+
+Codex reads its own `~/.codex/config.toml`. Write a custom model provider —
+`wire_api = "responses"` is mandatory:
+```toml
+model = "<model-served-by-proxy>"
+model_provider = "proxy"
+
+[model_providers.proxy]
+name = "proxy"
+base_url = "https://proxy.company.com/v1"
+wire_api = "responses"
+env_key = "PROXY_API_KEY"
+```
+Export `PROXY_API_KEY` (from the keyring) into the mind's environment. Codex GETs
+`<base>/v1/models`, then POSTs `<base>/v1/responses` with
+`Authorization: Bearer $PROXY_API_KEY`. Verify:
+```bash
+PROXY_API_KEY="<token>" codex exec --skip-git-repo-check \
+  -c 'model_provider="proxy"' -c 'model="<model>"' \
+  "Reply with exactly: PROXY-OK" </dev/null
+```
+
+### Offline routing proof (no working backend needed)
+
+To certify the wiring without a live backend, run a one-shot HTTP capture server
+on `127.0.0.1:9099` that logs method, path, and the `Authorization` header and
+returns 404, then point both harnesses at it. Confirm Claude hits
+`/v1/messages` and Codex hits `/v1/responses`, each forwarding the expected
+`Bearer` token. (Used to validate this path on the test box.)
 
 ## Step 5 — Ollama (if selected)
 
-Ask for endpoint URL (default: http://localhost:11434).
-Check connectivity:
+Local models, no key. Same `ANTHROPIC_BASE_URL` redirect as a proxy, with a
+placeholder token. Note: Ollama serves OpenAI `/v1` but **not** the Anthropic
+`/v1/messages` shape, so it backs Codex (OpenAI-compatible) cleanly but cannot
+serve Claude turns directly — it is only a routing stand-in for the Claude path.
+
+Ask for endpoint URL (default: http://localhost:11434). Check connectivity:
 ```bash
 curl -sf <endpoint>/api/tags | jq ".models[].name"
 ```
@@ -149,17 +225,11 @@ providers:
     api_base: "<endpoint>"
 ```
 
-## Step 6 — OpenAI-compatible (if selected)
-
-Ask for: provider name (e.g. "groq"), endpoint URL, API key.
-Store API key. Test connectivity using the OpenAI-compatible /v1/models endpoint.
-Add to config.yaml as a named provider with env overrides.
-
-## Step 7 — Summary
+## Step 6 — Summary
 
 | Provider | Status | Details |
 |----------|--------|---------|
-| Anthropic | OK/FAIL | key stored, N models |
-| OpenAI | OK/FAIL | key stored, verified |
+| Anthropic | OK/FAIL | OAuth or key, N models |
+| OpenAI | OK/FAIL | OAuth or key, verified |
+| Custom proxy | OK/FAIL | base URL, /v1/messages + /v1/responses reachable, token accepted |
 | Ollama | OK/FAIL | endpoint, N models |
-| ... | | |

@@ -42,6 +42,16 @@ Present two independent decisions:
 - Pros: simple, scriptable, no browser needed
 - Cons: pay-per-use costs, key management
 
+**Custom proxy token (corporate/self-hosted gateway):**
+- API-only, **no OAuth**. Both harnesses point at a gateway base URL and carry a
+  custom token as a `Bearer` header — Claude via `ANTHROPIC_BASE_URL` +
+  `ANTHROPIC_AUTH_TOKEN`, Codex via a custom `model_provider` + `env_key`.
+- Pros: no browser, scriptable, undetectable to the harness (it just sees an
+  API endpoint), works behind enterprise networks.
+- Cons: the gateway must expose `/v1/messages` (Claude) and `/v1/responses`
+  (Codex). The full wiring lives in `/setup-provider` Step 4 (Custom proxy).
+- Best for: University / corporate deployments behind an Azure or LiteLLM proxy.
+
 **None (Ollama-only users):**
 - If using only Ollama as a provider, no Claude auth is needed
 - The Claude CLI still needs to be installed but auth is handled by the Ollama provider env vars
@@ -52,6 +62,7 @@ Ask isolation model preference (recommend per-mind).
 Ask auth method based on their provider situation:
 - Using Anthropic? → OAuth or API key
 - Using OpenAI/Codex? → API key (stored separately)
+- Behind a corporate/self-hosted gateway? → Custom proxy token (no OAuth) — record `method: proxy` and complete the wiring in `/setup-provider` Step 4
 - Using only Ollama? → No auth needed
 
 ## Step 3 — Execute chosen path
@@ -92,6 +103,22 @@ import yaml
 with open('config.yaml') as f:
     cfg = yaml.safe_load(f)
 cfg['auth'] = {'isolation': 'per-mind', 'method': 'api-key'}
+with open('config.yaml', 'w') as f:
+    yaml.dump(cfg, f, default_flow_style=False)
+print('Auth config written.')
+"
+```
+
+**Proxy token (custom gateway):**
+- Store the proxy token in the keyring: `python3 -m keyring set hive-mind PROXY_API_KEY`
+- Record the choice; the per-harness wiring (base URL, Codex `config.toml`,
+  protocol verification) happens in `/setup-provider` Step 4.
+```bash
+python3 -c "
+import yaml
+with open('config.yaml') as f:
+    cfg = yaml.safe_load(f)
+cfg['auth'] = {'isolation': 'shared', 'method': 'proxy'}
 with open('config.yaml', 'w') as f:
     yaml.dump(cfg, f, default_flow_style=False)
 print('Auth config written.')
