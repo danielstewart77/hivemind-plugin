@@ -1,6 +1,6 @@
 ---
 name: setup-nervous-system
-description: Bootstrap and verify the Hive Mind nervous system — lucent (vector store + knowledge graph) and comms (gateway, broker, session manager). Deploys from scratch if nothing exists.
+description: Bootstrap and verify the Hive Mind nervous system — lucent (vector store + knowledge graph) and comms (gateway, broker, session manager). Deploys a new one locally, or connects this host to an existing hive-comms running on another machine.
 user-invocable: true
 tools: Bash, Read
 ---
@@ -18,6 +18,22 @@ Docker network:
   knowledge graph, backed by SQLite at `/data/lucent.db`. No Neo4j.
 - **comms** (`hive-comms`, host `8426` → container `8424`) — gateway, broker,
   and session manager, backed by SQLite (`broker.db`, `sessions.db`).
+
+## Step 0 — New deployment, or connect to an existing nervous system?
+
+Before anything, ask which topology this is:
+
+> Is this machine hosting its own nervous system, or connecting to an existing
+> hive-comms running on another machine?
+>
+>   N) New — deploy lucent and comms locally on this host (default for a
+>      standalone hive).
+>   E) Existing — this is a satellite mind that joins a central hive; the
+>      nervous system already runs elsewhere on the LAN.
+
+If **New**, do Steps 1–6 below.
+If **Existing**, skip Steps 1–6 entirely — no containers are deployed on this
+host — and follow "Connecting to an existing nervous system" at the end instead.
 
 ## Step 1 — Docker prerequisites
 
@@ -102,3 +118,77 @@ Present status table:
 | comms (8426) | OK/FAIL | container status, /health 200 |
 | Broker | OK/FAIL | N minds registered |
 | Tokens | OK/FAIL | lucent, comms, comms-admin set in .env |
+
+---
+
+# Connecting to an existing nervous system (the **Existing** path)
+
+Use this when Step 0 was answered **E**. No lucent or comms containers run on
+this host. This machine is a satellite mind; it only needs the coordinates of
+the central nervous system and credentials to reach it. Skip Steps 1–6 above.
+
+## Step E1 — Prompt for the central coordinates
+
+Ask the operator for each value. The central host is whatever machine runs the
+nervous system, reachable on the LAN (e.g. `192.168.4.64`):
+
+- **comms base URL** — e.g. `http://192.168.4.64:8426`
+- **comms bearer token** — the central host's `COMMS_BEARER_TOKEN`
+- **comms admin bearer token** — the central host's `COMMS_ADMIN_BEARER_TOKEN`
+  (required to register this mind with the broker)
+- **lucent base URL** — e.g. `http://192.168.4.64:8425`
+- **lucent bearer token** — the central host's `LUCENT_BEARER_TOKEN`
+
+Do not invent or default these — they must come from the central host's
+`hive_nervous_system/.env`.
+
+## Step E2 — Verify reachability before writing anything
+
+```bash
+COMMS_URL=<comms base URL>; CT=<comms token>; AT=<comms admin token>
+LUCENT_URL=<lucent base URL>; LT=<lucent token>
+curl -s -o /dev/null -m 8 -w "comms /health        = %{http_code}\n" -H "Authorization: Bearer $CT" "$COMMS_URL/health"
+curl -s -o /dev/null -m 8 -w "comms /broker/minds   = %{http_code}\n" -H "Authorization: Bearer $CT" "$COMMS_URL/broker/minds"
+curl -s -o /dev/null -m 8 -w "lucent /health       = %{http_code}\n" "$LUCENT_URL/health"
+curl -s -o /dev/null -m 8 -w "lucent /graph/schema = %{http_code}\n" -H "Authorization: Bearer $LT" "$LUCENT_URL/graph/schema"
+```
+
+All four must return `200`. Interpret failures before continuing:
+
+- **A connection timeout** — routing or a firewall between this host and the
+  central host. Routing must be open *both* ways: this mind reaches comms, and
+  comms must reach *back* to this mind's server port to dispatch. Fix the network
+  path first.
+- **401 / 403** — wrong token for that service.
+
+## Step E3 — Record the coordinates
+
+Write them where the mind process and bots read them — `hive_mind/.env`:
+
+```bash
+cd <hive_mind dir>
+for kv in "COMMS_URL=$COMMS_URL" "COMMS_BEARER_TOKEN=$CT" "COMMS_ADMIN_BEARER_TOKEN=$AT" "LUCENT_URL=$LUCENT_URL" "LUCENT_BEARER_TOKEN=$LT"; do
+  key=${kv%%=*}
+  grep -q "^$key=" .env 2>/dev/null && sed -i "s|^$key=.*|$kv|" .env || echo "$kv" >> .env
+done
+```
+
+`/setup-mind` and the management skills read these from `hive_mind/.env` on a
+satellite host (where no local `hive_nervous_system` exists). Two wiring rules
+follow from being remote:
+
+- The mind's process/container env must set `HIVE_MIND_SERVER_URL=$COMMS_URL` —
+  the remote comms URL, **not** the in-network `hive-comms:8424` name, which only
+  resolves on the central host's Docker network.
+- When the mind registers, its `gateway_url` must be an address comms can reach
+  it on — this host's LAN address and the mind's server port, e.g.
+  `http://192.168.5.64:8421` — never `localhost`.
+
+## Step E4 — Report
+
+| Item | Status | Details |
+|------|--------|---------|
+| comms URL | OK/FAIL | reachable, /health 200 |
+| lucent URL | OK/FAIL | reachable, /health + /graph/schema 200 |
+| Coordinates | OK/FAIL | written to `hive_mind/.env` |
+| Local containers | n/a | none deployed (satellite host) |

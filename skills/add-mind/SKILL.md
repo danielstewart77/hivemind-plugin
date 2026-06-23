@@ -14,15 +14,29 @@ host. There is no shared/subprocess mode. Each mind runs its own
 `implementation.py` as an HTTP server (FastAPI) that comms dispatches sessions
 to over the `hivemind` network.
 
-The gateway/broker is the `comms` container — host `http://localhost:8426`,
-in-container `http://hive-comms:8424`. Broker writes need the admin token; reads
-and session calls need the regular token:
+The gateway/broker is the `comms` container. Broker writes need the admin token;
+reads and session calls need the regular token. Where the coordinates live
+depends on whether comms runs on this host or on a managing instance:
 
 ```bash
+# instance (comms is local): read from the local nervous-system repo
 NS=~/Storage/Dev/hive_nervous_system        # adjust to the nervous-system repo path
-CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
-AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+if [ -f "$NS/.env" ]; then
+  COMMS_URL=http://localhost:8426
+  CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+  AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+else
+  # spoke (comms is remote): read the coordinates /setup-nervous-system wrote
+  ENV=<hive_mind dir>/.env
+  COMMS_URL=$(grep ^COMMS_URL= "$ENV" | cut -d= -f2-)
+  CT=$(grep ^COMMS_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
+  AT=$(grep ^COMMS_ADMIN_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
+fi
 ```
+
+Use `$COMMS_URL` for every broker/session call below — never a hardcoded
+`localhost:8426`. In-container minds on the central host reach comms at
+`http://hive-comms:8424`; a satellite mind reaches it at the remote `$COMMS_URL`.
 
 ## Step 1 — Determine scenario
 
@@ -44,7 +58,9 @@ Collect from the user (or read from `minds/<name>/runtime.yaml` for Scenario C):
 - `mind_id` — the durable UUID. For a new mind, generate one: `python3 -c "import uuid;print(uuid.uuid4())"`. For Scenario C read it from `runtime.yaml`.
 - `gateway_url` — where comms dispatches:
   - Docker (A): `http://hive-mind-<name>:<port>` (the container name on the `hivemind` network; port = the mind's `MIND_SERVER_PORT`, e.g. 8421)
-  - Bare-metal (D): `http://localhost:<port>`
+  - Bare-metal (D): `http://localhost:<port>` if comms is on this same host; on a
+    satellite host (comms remote) it must be this host's LAN address so comms can
+    dispatch back, e.g. `http://192.168.5.64:<port>`
   - Remote (B): the remote host's URL, ask the user
 - `model` (e.g. `sonnet`, `gpt-oss:20b`)
 - `harness` (e.g. `claude`, `codex`)
@@ -134,7 +150,7 @@ curl -sf http://localhost:<port>/health && echo "UP" || docker logs hive-mind-<n
 ## Step 5 — Register with broker
 
 ```bash
-curl -s -X POST http://localhost:8426/broker/minds \
+curl -s -X POST $COMMS_URL/broker/minds \
   -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
   -d '{"mind_id":"<uuid>","name":"<name>","gateway_url":"<gateway_url>","model":"<model>","harness":"<harness>"}'
 ```
@@ -145,21 +161,21 @@ If the response contains an error, stop and surface it to the user.
 
 Create a test session (note the response field is `id`):
 ```bash
-curl -s -X POST http://localhost:8426/sessions \
+curl -s -X POST $COMMS_URL/sessions \
   -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
   -d '{"owner_type":"test","owner_ref":"add-mind-verify","client_ref":"add-mind","mind_id":"<uuid>"}'
 ```
 
 Send a test message (SSE stream) to the returned session id:
 ```bash
-curl -s -N -X POST http://localhost:8426/sessions/<session_id>/message \
+curl -s -N -X POST $COMMS_URL/sessions/<session_id>/message \
   -H "Authorization: Bearer $AT" -H "Content-Type: application/json" \
   -d '{"content":"Respond with exactly: registration verified."}'
 ```
 
 Check the stream for "registration verified", then clean up:
 ```bash
-curl -s -X DELETE -H "Authorization: Bearer $AT" http://localhost:8426/sessions/<session_id>
+curl -s -X DELETE -H "Authorization: Bearer $AT" $COMMS_URL/sessions/<session_id>
 ```
 
 If routability check fails, surface the error clearly but do NOT roll back the

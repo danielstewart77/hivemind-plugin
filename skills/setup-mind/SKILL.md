@@ -33,18 +33,43 @@ remote machine via SSH — it is not for configuring local minds.
 
 ## Step 1 — Prerequisite check
 
-The gateway/broker is the `comms` container (host `8426`), bearer-gated. Read the
-tokens from the nervous-system repo's `.env`:
+The gateway/broker is the `comms` container, bearer-gated. Where its coordinates
+live depends on the topology:
+
+- **`instance` (comms runs on this host):** read the tokens from the local
+  nervous-system repo's `.env` and reach comms on `localhost:8426`.
+
+  ```bash
+  NS=~/Storage/Dev/hive_nervous_system        # adjust to the nervous-system repo path
+  COMMS_URL=http://localhost:8426
+  CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+  AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
+  ```
+
+- **`spoke` (comms runs on another machine):** there is no local
+  `hive_nervous_system`. Read the central coordinates `/setup-nervous-system`'s
+  Existing path wrote into `hive_mind/.env`:
+
+  ```bash
+  ENV=<hive_mind dir>/.env
+  COMMS_URL=$(grep ^COMMS_URL= "$ENV" | cut -d= -f2-)
+  CT=$(grep ^COMMS_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
+  AT=$(grep ^COMMS_ADMIN_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
+  ```
+
+Either way, verify comms before continuing (note `$COMMS_URL`, never a hardcoded
+`localhost`):
 
 ```bash
-NS=~/Storage/Dev/hive_nervous_system        # adjust to the nervous-system repo path
-CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
-AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
-curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/health > /dev/null || echo "comms not reachable. Run /setup-nervous-system first."
-curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/broker/minds | jq length
+curl -sf -m 8 -H "Authorization: Bearer $CT" "$COMMS_URL/health" > /dev/null \
+  || echo "comms not reachable at $COMMS_URL. Run /setup-nervous-system first."
+curl -sf -m 8 -H "Authorization: Bearer $CT" "$COMMS_URL/broker/minds" | jq length
 ```
 
-**If `spoke`:** skip — no local gateway or broker required. Verify Docker is running.
+**If `spoke`:** there is no *local* gateway or broker to deploy — but comms must
+still be reachable at the remote `$COMMS_URL` above, and it must be able to reach
+back to this mind's `gateway_url` (this host's LAN address and the mind's server
+port). Verify Docker is running.
 
 Verify at least one provider is configured (check config.yaml providers block).
 
@@ -54,7 +79,7 @@ Show only minds that are actually running as containers — do NOT surface mind 
 
 ```bash
 # Minds registered in the broker (actually deployed)
-curl -sf -H "Authorization: Bearer $CT" http://localhost:8426/broker/minds 2>/dev/null | jq -r '.[].name' || echo "(none yet)"
+curl -sf -H "Authorization: Bearer $CT" "$COMMS_URL/broker/minds" 2>/dev/null | jq -r '.[].name' || echo "(none yet)"
 
 # Running mind containers
 docker ps --format "{{.Names}}" 2>/dev/null | grep '^hive-mind-' || echo "(none running)"

@@ -337,11 +337,18 @@ Write `<INSTALL_PATH>/souls/<name>.md` with the soul seed.
 
 Ask what port to use (default: 8421).
 
-Write `<INSTALL_PATH>/.env`:
+Write `<INSTALL_PATH>/.env`. `HIVE_MIND_SERVER_URL` is the comms gateway: use
+`http://localhost:8426` only when comms runs on this same host; on a satellite
+host point it at the managing instance's comms (the `COMMS_URL` recorded by
+`/setup-nervous-system`'s Existing path), e.g. `http://192.168.4.64:8426`. The
+mind also needs the comms bearer token and its lucent coordinates:
 ```
 MIND_ID=<uuid>
 MIND_SERVER_PORT=<port>
-HIVE_MIND_SERVER_URL=http://localhost:8426
+HIVE_MIND_SERVER_URL=<COMMS_URL>      # http://localhost:8426 local, or remote comms on a satellite
+COMMS_BEARER_TOKEN=<comms token>
+LUCENT_URL=<lucent URL>              # http://localhost:8425 local, or remote lucent on a satellite
+LUCENT_BEARER_TOKEN=<lucent token>
 PYTHON_KEYRING_BACKEND=keyrings.alt.file.PlaintextKeyring
 CLAUDE_CONFIG_DIR=<INSTALL_PATH>/.claude
 ```
