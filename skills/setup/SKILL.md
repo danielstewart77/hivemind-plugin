@@ -23,21 +23,10 @@ Where do you want to install Hive Mind?
 (B) Remote machine — install on another machine via SSH
 ```
 
-**If (B) Remote:** collect the target machine's host, SSH port (default 22), and username.
-Then open a remote-admin session:
-
-```bash
-TOKEN=$(python3 -m keyring get hive-mind remote_admin_token)
-PKEY=$(python3 -m keyring get hive-mind remote_admin_ssh_key_default)
-SID=$(curl -s -X POST http://hive-mind-remote-admin:8430/sessions \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d "{\"host\":\"<host>\",\"port\":22,\"username\":\"<user>\",\"private_key\":\"$PKEY\"}" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['session_id'])")
-```
-
-All remaining questions and setup steps (including Question 2 below) apply to the remote
-machine and are executed via `exec` calls on that session. Relay each question and answer
-through the session exactly as you would locally.
+**If (B) Remote:** this installer runs on whatever host it's invoked from. To install
+on another machine, open an SSH session to that machine yourself and run `/setup all`
+there — there is no bridge or proxy, you are the operator on that box. Every step below
+then executes locally on the target. Continue with Question 2 once you're on the target host.
 
 ### Question 2 — What kind of install?
 

@@ -28,9 +28,6 @@ What kind of install is this?
 
 Store as `INSTALL_TYPE` (values: `instance`, `spoke`).
 
-Do NOT delegate to `/setup-remote` here. That skill installs Hive Mind on a
-remote machine via SSH — it is not for configuring local minds.
-
 ## Step 1 — Prerequisite check
 
 The gateway/broker is the `comms` container, bearer-gated. Where its coordinates

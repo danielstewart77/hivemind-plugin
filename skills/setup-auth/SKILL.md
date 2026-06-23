@@ -1,13 +1,16 @@
 ---
 name: setup-auth
-description: Set up Claude Code authentication for Hive Mind. Choose isolation model (shared vs per-mind) and auth method (OAuth vs API key). Explains pros and cons of each combination.
+description: Set up harness authentication (Claude Code and Codex) for Hive Mind. Choose isolation model (shared vs per-mind) and auth method (OAuth, API key, or proxy token). Covers headless OAuth over SSH. Explains pros and cons of each combination.
 user-invocable: true
 tools: Bash, Read
 ---
 
 # setup-auth
 
-Configure Claude Code authentication for the Hive Mind system.
+Configure harness authentication (Claude Code and Codex CLIs) for the Hive Mind
+system. The CLIs themselves are installed by `/setup-prerequisites`; this skill
+only logs them in. If a CLI is missing when you reach an OAuth step, that is a
+`/setup-prerequisites` gap — fix it there, do not hand-install here.
 
 ## Step 1 — Explain auth models
 
@@ -31,11 +34,21 @@ Present two independent decisions:
 
 ### Decision 2: Auth Method
 
-**OAuth (subscription users — Claude Max/Pro):**
-- Interactive browser login flow
-- Token stored in `~/.claude.json`
-- Pros: no API key to manage, uses existing subscription
-- Cons: requires browser access for initial setup, token can expire
+**Claude OAuth (subscription users — Claude Max/Pro):**
+- Headless-friendly: `claude setup-token` mints a long-lived OAuth token by
+  showing a sign-in URL and accepting a pasted authorization code — no browser
+  needs to run *on the box*; any browser anywhere completes it.
+- Token stored under `~/.claude/` (or exported as `CLAUDE_CODE_OAUTH_TOKEN`).
+- Pros: no API key to manage, uses existing subscription.
+- Cons: token can expire and must be refreshed.
+
+**Codex OAuth (subscription users — ChatGPT Plus/Pro):**
+- Headless-friendly: `codex login --device-auth` prints a device URL and a
+  one-time code; sign in at the URL from any browser and enter the code. The
+  box itself needs no browser.
+- Credentials stored in `~/.codex/auth.json`.
+- Pros: no API key to manage, uses existing ChatGPT subscription.
+- Cons: the device code expires in ~15 minutes; restart the flow if it lapses.
 
 **API key (pay-per-use):**
 - Set `ANTHROPIC_API_KEY` environment variable or write to `~/.claude.json`
@@ -60,17 +73,44 @@ Present two independent decisions:
 
 Ask isolation model preference (recommend per-mind).
 Ask auth method based on their provider situation:
-- Using Anthropic? → OAuth or API key
-- Using OpenAI/Codex? → API key (stored separately)
+- Using Claude (Anthropic)? → Claude OAuth or API key
+- Using Codex (OpenAI/ChatGPT)? → Codex OAuth or API key
 - Behind a corporate/self-hosted gateway? → Custom proxy token (no OAuth) — record `method: proxy` and complete the wiring in `/setup-provider` Step 4
 - Using only Ollama? → No auth needed
 
 ## Step 3 — Execute chosen path
 
-**Shared + OAuth:**
-- Check if `~/.claude.json` exists on host
-- If not, guide: "Run `claude` in your terminal to complete the OAuth login flow"
-- Verify: `claude --version` works without auth errors
+**Claude OAuth (headless — works over SSH, no local browser):**
+- Confirm the CLI exists first (`command -v claude`); if missing, that is a
+  `/setup-prerequisites` gap — install it there, not here.
+- Run `claude setup-token`. It prints a sign-in URL and then waits for a pasted
+  authorization code. Over SSH this blocks, so run it inside a held-open session
+  the operator can return to:
+  ```bash
+  tmux new-session -d -s claudeauth 'claude setup-token; exec bash'
+  tmux capture-pane -t claudeauth -p          # read the URL, hand it to the operator
+  # operator authorizes in any browser, returns the code; deliver it:
+  tmux send-keys -t claudeauth '<pasted-code>' Enter
+  ```
+- Verify: `claude --version` runs without an auth error. Store the token where
+  the mind reads it — `CLAUDE_CODE_OAUTH_TOKEN` in the mind's `.env`, or the
+  per-mind `~/.claude/`. Kill the tmux session when done.
+
+**Codex OAuth (headless — works over SSH, no local browser):**
+- Confirm the CLI exists first (`command -v codex`); if missing, fix it in
+  `/setup-prerequisites`.
+- Run the device flow inside a held-open session:
+  ```bash
+  tmux new-session -d -s codexauth 'codex login --device-auth; exec bash'
+  tmux capture-pane -t codexauth -p           # read the URL + one-time code
+  ```
+- Hand the operator the URL and the one-time code; they sign in at the URL from
+  any browser and enter the code. The flow completes on its own — nothing to
+  paste back.
+- Verify: `codex login status` reports `Logged in`; credentials land in
+  `~/.codex/auth.json`. Kill the tmux session when done.
+
+**Shared + API-key path:** see the API-key blocks below.
 
 **Shared + API key:**
 - Ask for the API key
