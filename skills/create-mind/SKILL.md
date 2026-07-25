@@ -21,7 +21,7 @@ only what this skill asks for and what the cloned repo contains. Never
 hardcode a comms address, a token, a host IP, or a path — if a value is
 needed, prompt for it.
 
-**CRITICAL: Never run `git remote`, `git clone`, or any git command from an existing hive_mind directory. Never cd into an existing installation to discover the repo URL. The GitHub URL is always `https://github.com/danielstewart77/hive_mind` — use it directly.**
+**CRITICAL: Never run `git remote`, `git clone`, or any git command from an existing hive-mind directory. Never cd into an existing installation to discover the repo URL. The GitHub URL is always `https://github.com/danielstewart77/hive-mind` — use it directly.**
 
 ## Step 1 — Gather info
 

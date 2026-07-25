@@ -21,7 +21,7 @@ Check if `config.yaml` already exists:
 Ask the user for:
 - **Installation directory** — where the project root lives (default: current directory)
 
-The gateway no longer lives in `hive_mind` — it is the `comms` container in the
+The gateway no longer lives in `hive-mind` — it is the `comms` container in the
 nervous system (host `8426`). `config.yaml` carries no gateway port; surfaces
 and minds reach comms via `COMMS_URL`, set during `/setup-body` and `/setup-mind`.
 
@@ -34,7 +34,7 @@ After the user specifies the installation directory, check whether `docker-compo
 If missing, clone the repository automatically — no prompt, just do it:
 
 ```bash
-git clone https://github.com/danielstewart77/hive_mind <install_dir>
+git clone https://github.com/danielstewart77/hive-mind <install_dir>
 ```
 
 - **Data storage** — Ask:

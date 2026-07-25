@@ -51,7 +51,7 @@ Store as `INSTALL_TYPE` (values: `instance`, `spoke`).
 - **spoke**: do **not** deploy a local nervous system, but still run
   `/setup-nervous-system` in its **Existing** path — that is where the wizard
   prompts for the managing instance's comms and lucent URLs and bearer tokens,
-  verifies it can reach them, and records them in `hive_mind/.env`. Then go
+  verifies it can reach them, and records them in `hive-mind/.env`. Then go
   Config → Auth → Provider → Mind (single mind only). The mind's `gateway_url`
   and `HIVE_MIND_SERVER_URL` are wired to those remote coordinates, not local.
 
@@ -68,7 +68,7 @@ Default (no argument): show the menu.
 ```bash
 # lucent /health needs no auth; comms /health is bearer-gated.
 # Resolve coordinates: local nervous-system repo (instance), else the remote
-# coordinates a spoke recorded in hive_mind/.env. Defaults to localhost.
+# coordinates a spoke recorded in hive-mind/.env. Defaults to localhost.
 CT=$(grep -h COMMS_BEARER_TOKEN */.env ~/Storage/Dev/hive_nervous_system/.env 2>/dev/null | head -1 | cut -d= -f2)
 COMMS_URL=$(grep -h ^COMMS_URL= */.env 2>/dev/null | head -1 | cut -d= -f2-); COMMS_URL=${COMMS_URL:-http://localhost:8426}
 LUCENT_URL=$(grep -h ^LUCENT_URL= */.env 2>/dev/null | head -1 | cut -d= -f2-); LUCENT_URL=${LUCENT_URL:-http://localhost:8425}

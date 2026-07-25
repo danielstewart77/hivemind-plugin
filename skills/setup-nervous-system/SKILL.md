@@ -11,7 +11,7 @@ Deploy and verify the core infrastructure. Everything else depends on this.
 
 The nervous system is the standalone
 [`hive_nervous_system`](https://github.com/danielstewart77/hive_nervous_system)
-repo, not part of `hive_mind`. It runs two containers on the shared `hivemind`
+repo, not part of `hive-mind`. It runs two containers on the shared `hivemind`
 Docker network:
 
 - **lucent** (`hive-lucent`, host `8425` → container `8424`) — vector store +
@@ -44,7 +44,7 @@ docker network inspect hivemind >/dev/null 2>&1 || docker network create hivemin
 
 ## Step 2 — Clone the nervous system repo
 
-Ask for the parent directory for repos (default: the same parent as `hive_mind`,
+Ask for the parent directory for repos (default: the same parent as `hive-mind`,
 e.g. `~/Storage/Dev`). If `hive_nervous_system` is missing there, clone it:
 
 ```bash
@@ -69,7 +69,7 @@ token. `comms` gates `/health` too — pass the comms token to reach it.
 delete endpoints return 503 and no mind can be registered (see `/setup-mind`).
 
 Surfaces and minds will need these tokens too. Record them where the consuming
-component reads them — `hive_mind/.env` for the bots, each mind's container env
+component reads them — `hive-mind/.env` for the bots, each mind's container env
 for the minds.
 
 ## Step 4 — Build and deploy
@@ -163,17 +163,17 @@ All four must return `200`. Interpret failures before continuing:
 
 ## Step E3 — Record the coordinates
 
-Write them where the mind process and bots read them — `hive_mind/.env`:
+Write them where the mind process and bots read them — `hive-mind/.env`:
 
 ```bash
-cd <hive_mind dir>
+cd <hive-mind dir>
 for kv in "COMMS_URL=$COMMS_URL" "COMMS_BEARER_TOKEN=$CT" "COMMS_ADMIN_BEARER_TOKEN=$AT" "LUCENT_URL=$LUCENT_URL" "LUCENT_BEARER_TOKEN=$LT"; do
   key=${kv%%=*}
   grep -q "^$key=" .env 2>/dev/null && sed -i "s|^$key=.*|$kv|" .env || echo "$kv" >> .env
 done
 ```
 
-`/setup-mind` and the management skills read these from `hive_mind/.env` on a
+`/setup-mind` and the management skills read these from `hive-mind/.env` on a
 satellite host (where no local `hive_nervous_system` exists). Two wiring rules
 follow from being remote:
 
@@ -190,5 +190,5 @@ follow from being remote:
 |------|--------|---------|
 | comms URL | OK/FAIL | reachable, /health 200 |
 | lucent URL | OK/FAIL | reachable, /health + /graph/schema 200 |
-| Coordinates | OK/FAIL | written to `hive_mind/.env` |
+| Coordinates | OK/FAIL | written to `hive-mind/.env` |
 | Local containers | n/a | none deployed (satellite host) |

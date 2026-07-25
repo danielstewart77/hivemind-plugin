@@ -38,7 +38,7 @@ After setup, configure your MCP connection by copying the template:
 cp mcp.json.template .mcp.json
 ```
 
-Edit `.mcp.json` and replace the placeholders with paths to your cloned `hive_mind` repo and Python virtualenv.
+Edit `.mcp.json` and replace the placeholders with paths to your cloned `hive-mind` repo and Python virtualenv.
 
 ---
 
@@ -216,7 +216,7 @@ If reflections stop appearing, check this log first.
 The Hive Mind server (FastAPI gateway, MCP tools, broker, mind containers) is in a separate repository:
 
 ```
-https://github.com/danielstewart77/hive_mind
+https://github.com/danielstewart77/hive-mind
 ```
 
 The `/hivemind:setup` skill clones and deploys it automatically.

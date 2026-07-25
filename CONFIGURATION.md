@@ -28,8 +28,8 @@ Rename `mcp.json.template` to `.mcp.json` and replace the placeholder paths:
 {
   "mcpServers": {
     "hive-mind-tools": {
-      "command": "/path/to/hive_mind/venv/bin/python",
-      "args": ["/path/to/hive_mind/mcp_server.py"]
+      "command": "/path/to/hive-mind/venv/bin/python",
+      "args": ["/path/to/hive-mind/mcp_server.py"]
     }
   }
 }

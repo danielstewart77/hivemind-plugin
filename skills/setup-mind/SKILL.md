@@ -45,10 +45,10 @@ live depends on the topology:
 
 - **`spoke` (comms runs on another machine):** there is no local
   `hive_nervous_system`. Read the central coordinates `/setup-nervous-system`'s
-  Existing path wrote into `hive_mind/.env`:
+  Existing path wrote into `hive-mind/.env`:
 
   ```bash
-  ENV=<hive_mind dir>/.env
+  ENV=<hive-mind dir>/.env
   COMMS_URL=$(grep ^COMMS_URL= "$ENV" | cut -d= -f2-)
   CT=$(grep ^COMMS_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
   AT=$(grep ^COMMS_ADMIN_BEARER_TOKEN= "$ENV" | cut -d= -f2-)
