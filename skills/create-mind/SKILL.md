@@ -9,8 +9,9 @@ user-invocable: true
 
 `$ARGUMENTS[0]` = mind name. Ask if missing.
 
-Every mind in this system runs as a Docker container — a single
-self-contained FastAPI service (`implementation.py`) that hive-comms
+Every mind in this system runs as a Docker container — the shared harness
+FastAPI service (`minds/harness/claude_cli.py` or `codex_cli.py`, selected
+by the fragment's `command` with `MIND_NAME` in its env) that hive-comms
 dispatches to over HTTP. There is no bare-metal or systemd path. A full
 standalone system is brought up with Docker Compose via `/setup`, not by
 this skill.
@@ -153,23 +154,23 @@ Do not tell the user to be brief.
 
 ## Step 2 — Select template
 
-Auto-select by harness. Never ask the user to choose a template. The
-provider (Claude vs Ollama, or OpenAI vs Ollama) is not a separate
-template — it is chosen in `runtime.yaml` (`provider` plus the `env`
-block), which the one harness template reads at runtime.
+Auto-select by harness. The provider (Claude vs Ollama, or OpenAI vs
+Ollama) is not a separate module — it is chosen in `runtime.yaml`
+(`provider` plus the `env` block), which the harness module reads at
+runtime.
 
-| Harness    | Template     | Status |
-|------------|--------------|--------|
-| Claude CLI | `claude_cli` | tested |
-| Codex CLI  | `codex_cli`  | tested |
+| Harness    | Module                         | Status |
+|------------|--------------------------------|--------|
+| Claude CLI | `minds/harness/claude_cli.py`  | tested |
+| Codex CLI  | `minds/harness/codex_cli.py`   | tested |
 
 ## Step 3 — Scaffold files
 
+No code is copied — the container runs the shared harness module directly,
+selected by the fragment's `command` with `MIND_NAME=<name>` in its env:
+
 ```bash
 mkdir -p minds/<name>/container
-cp mind_templates/<selected>.py minds/<name>/implementation.py
-sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
-touch minds/<name>/__init__.py
 ```
 
 Write `minds/<name>/runtime.yaml` with:
@@ -229,7 +230,8 @@ If no: skip.
 
 Write the per-mind Compose fragment `minds/<name>/container/compose.yaml` (a
 single-service document joining the external `hivemind` network, with
-`MIND_SERVER_PORT` set). For `TOPOLOGY=local`, set
+`MIND_NAME=<name>` and `MIND_SERVER_PORT` in its env and
+`command: ["/opt/venv/bin/python3", "-m", "minds.harness.<claude_cli|codex_cli>"]`). For `TOPOLOGY=local`, set
 `HIVE_MIND_SERVER_URL=http://hive-comms:8424` (the in-stack service name).
 For `TOPOLOGY=spoke`, set `HIVE_MIND_SERVER_URL=<COMMS_URL>` and pass
 `COMMS_BEARER_TOKEN=<COMMS_BEARER_TOKEN>` from Step 1b.

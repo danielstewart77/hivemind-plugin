@@ -10,9 +10,10 @@ user-invocable: true
 `$ARGUMENTS[0]` = mind name. Ask if missing.
 
 Every mind is its own process — a container, a bare-metal service, or a remote
-host. There is no shared/subprocess mode. Each mind runs its own
-`implementation.py` as an HTTP server (FastAPI) that comms dispatches sessions
-to over the `hivemind` network.
+host. There is no shared/subprocess mode. Each mind runs a shared harness
+module (`minds/harness/claude_cli.py` or `codex_cli.py`) as an HTTP server
+(FastAPI) that comms dispatches sessions to over the `hivemind` network; the
+module reads the mind's own `runtime.yaml` via `MIND_NAME`.
 
 The gateway/broker is the `comms` container. Broker writes need the admin token;
 reads and session calls need the regular token. Where the coordinates live
@@ -97,17 +98,15 @@ If not running, stop and tell the user to start the service, then re-run `/add-m
 
 For Scenario C: `runtime.yaml` already exists — skip to Step 4.
 
-## Step 3 — Scaffold implementation (Scenario A only)
+## Step 3 — Scaffold the mind folder (Scenario A only)
 
-Pick the template matching harness + model family. NOTE: only
-`codex_cli_ollama.py` currently embeds the in-container FastAPI server; the
-Claude templates still need that server ported in before they can run as a
-container (see the mind-templates code task). Copy the template:
+There is no per-mind service code and no template copy: the container runs a
+shared, tracked harness module — `minds/harness/claude_cli.py` or
+`minds/harness/codex_cli.py` — selected by the fragment's `command`, with
+`MIND_NAME=<name>` in its env pointing it at this folder's `runtime.yaml`.
+
 ```bash
 mkdir -p minds/<name>/container
-cp mind_templates/<selected>.py minds/<name>/implementation.py
-sed -i 's/MIND_NAME/<name>/g' minds/<name>/implementation.py
-touch minds/<name>/__init__.py
 ```
 
 Write `minds/<name>/container/compose.yaml` — a single-service fragment that
@@ -119,6 +118,7 @@ services:
     container_name: hive-mind-<name>
     working_dir: /usr/src/app
     environment:
+      - MIND_NAME=<name>
       - MIND_ID=<uuid>
       - MIND_SERVER_PORT=<port>
       - HIVE_MIND_SERVER_URL=http://hive-comms:8424
@@ -129,7 +129,7 @@ services:
     networks:
       - hivemind
     restart: unless-stopped
-    command: ["/opt/venv/bin/python3", "-m", "minds.<name>.implementation"]
+    command: ["/opt/venv/bin/python3", "-m", "minds.harness.<claude_cli|codex_cli>"]
 
 networks:
   hivemind:
@@ -185,7 +185,7 @@ registration — the mind is registered, it just couldn't respond yet.
 
 Summarize:
 - Scenario handled (A=Docker / B=Remote / C=Re-registration / D=Bare-metal)
-- Files created (runtime.yaml, implementation.py, container/compose.yaml, __init__.py — Scenario A only)
+- Files created (runtime.yaml, container/compose.yaml — Scenario A only)
 - Containerised (yes/no, compose include updated — Scenario A only)
 - Broker registration status
 - Routability verification result

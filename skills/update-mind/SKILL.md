@@ -50,7 +50,7 @@ Only include fields that changed. Verify 200 response.
 
 ## Step 5 — Side effects
 
-- If **harness changed**: warn the user that `implementation.py` may need updating. Offer to copy the matching template from `mind_templates/`.
+- If **harness changed**: update the mind's `container/compose.yaml` `command` to the matching shared module (`minds.harness.claude_cli` or `minds.harness.codex_cli`) and recreate the container.
 - If **gateway_url changed**: verify the new URL is reachable.
 - If **model changed** and mind has running sessions: warn the user to restart sessions for the change to take effect.
 
