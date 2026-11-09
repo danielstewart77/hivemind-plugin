@@ -4,9 +4,8 @@ This plugin distributes Hive Mind skills, agents, and lifecycle hooks. Skills ar
 
 ## Skills
 
-77 skills across 8 groups — see README.md for the full table. Key groups:
+14 skills — see README.md for the full table. Key groups:
 
-- **Setup** — `/hivemind:setup` master wizard, prerequisite detection, config generation, mind provisioning
 - **Memory** — full pipeline: parse → classify → route → save → reflect. Core to Ada's identity system.
 - **Development** — TDD planning, coding, code review, story management via Planka
 - **Communication** — email (HITL-gated), Telegram notifications, LinkedIn, Discord sync
@@ -28,14 +27,14 @@ Two lifecycle hooks (scripts installed at `~/.claude/hooks/` during setup):
 - **SessionStart** — `sync_skills.py` symlinks all plugin skills/agents, then `session_start_identity.sh` loads the mind's identity from the knowledge graph
 - **Stop** — `soul_nudge.sh` dispatches an async background reflection cycle (`/self-reflect --reflect`)
 
-The identity hooks are host-level (not in this repo) — they're created by `/hivemind:setup-mind` during installation and are specific to the mind running on that host.
+The identity hooks are host-level (not in this repo) — they're created when the mind is installed and are specific to the mind running on that host.
 
 ## Template variables
 
-Some skills contain `{{USER}}`, `{{PLANKA_PROJECT_ID}}`, and similar placeholders. Run `/hivemind:setup-resolve-placeholders` after installation to substitute them with real values.
+Some skills contain `{{USER}}`, `{{PLANKA_PROJECT_ID}}`, and similar placeholders. Substitute them with real values after installation.
 
 ## Config files written by skills
 
 - `~/.claude/plugins/installed_plugins.json` — plugin registry (managed by plugin system)
 - `~/.mcp.json` — MCP server connection (from `mcp.json.template`, filled by setup)
-- `~/.claude/hooks/` — identity lifecycle scripts (written by `setup-mind`)
+- `~/.claude/hooks/` — identity lifecycle scripts (written at mind install)

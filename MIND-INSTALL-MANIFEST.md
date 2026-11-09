@@ -1,9 +1,9 @@
 # Mind Install Manifest
 
-This file is the authoritative reference for what gets distributed to each mind during setup.
+This file is the authoritative reference for what gets distributed to each mind during install.
 It covers **skills**, **agents**, and **hooks** — everything in this plugin.
 
-Referenced by: `setup-mind`, `setup-body`, `setup`. Not discovered by the Claude skill loader.
+Not discovered by the Claude skill loader.
 
 ---
 
@@ -11,7 +11,7 @@ Referenced by: `setup-mind`, `setup-body`, `setup`. Not discovered by the Claude
 
 | Tier | Meaning |
 |---|---|
-| **core** | Installed automatically for every mind. Not presented during setup. |
+| **core** | Installed automatically for every mind. Not presented during install. |
 | **a-la-carte** | Presented to the user during mind setup for optional selection. |
 | **setup-only** | Used by the setup flow itself. Never installed per-mind. |
 
@@ -128,11 +128,9 @@ Power-user skills for extending the system itself.
 
 ### Setup Only _(setup-only, never per-mind)_
 
-Used by the setup flow. Never presented as mind options.
+Never presented as mind options.
 
-`setup`, `setup-prerequisites`, `setup-config`, `setup-auth`, `setup-nervous-system`,
-`setup-provider`, `setup-body`, `setup-mind`, `setup-resolve-placeholders`,
-`setup-personality`, `setup-remote`, `create-mind`, `add-mind`, `remove-mind`,
+`setup-personality`, `create-mind`, `add-mind`, `remove-mind`,
 `update-mind`, `add-provider`, `remove-provider`, `update-provider`,
 `generate-compose`, `seed-mind`
 
@@ -174,7 +172,7 @@ Installed silently alongside Core skills. These back the memory pipeline and ide
 
 ### Core _(core, every mind)_
 
-Both hooks are installed silently for every mind during `setup-mind`. They are configured in the mind's Claude Code settings.
+Both hooks are installed silently for every mind when the mind is installed. They are configured in the mind's Claude Code settings.
 
 | Hook | Trigger | Script | Description |
 |---|---|---|---|

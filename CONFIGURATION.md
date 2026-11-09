@@ -12,7 +12,7 @@ The following skills reference Planka board, list, and label IDs that are specif
 - `skills/story-start/SKILL.md`
 - `skills/story-close/SKILL.md`
 
-**After running `/hivemind:setup`, use `/hivemind:planka` to discover your own board and list IDs, then update the values in these skills.**
+**Use `/hivemind:planka` to discover your own board and list IDs, then update the values in these skills.**
 
 The IDs to replace are of the form `1720xxxxxxxxxxxxxxx` — search for them across the skills directory:
 
@@ -37,4 +37,4 @@ Rename `mcp.json.template` to `.mcp.json` and replace the placeholder paths:
 
 ## Hook Scripts
 
-Hooks reference scripts at `~/.claude/hooks/`. These are created by `/hivemind:setup-mind`. If hooks fail at startup, verify those scripts exist.
+Hooks reference scripts at `~/.claude/hooks/`. These are created when the mind is installed. If hooks fail at startup, verify those scripts exist.
