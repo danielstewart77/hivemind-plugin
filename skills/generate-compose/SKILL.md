@@ -71,7 +71,7 @@ docker compose -f minds/<name>/container/compose.yaml up -d
 
 The fragment already joins the external `hivemind` network and points
 `HIVE_MIND_SERVER_URL` at `http://hive-comms:8424`, so the mind is reachable by
-comms as soon as it is registered (see `/setup-mind`). Validate the fragment with:
+comms as soon as it is registered. Validate the fragment with:
 
 ```bash
 docker compose -f minds/<name>/container/compose.yaml config > /dev/null 2>&1 \

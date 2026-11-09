@@ -13,7 +13,7 @@ Every mind in this system runs as a Docker container — the shared harness
 FastAPI service (`minds/harness/claude_cli.py` or `codex_cli.py`, selected
 by the fragment's `command` with `MIND_NAME` in its env) that hive-comms
 dispatches to over HTTP. There is no bare-metal or systemd path. A full
-standalone system is brought up with Docker Compose via `/setup`, not by
+standalone system is brought up with Docker Compose by the hive installer, not by
 this skill.
 
 **Assume nothing.** The operator (human or agent) driving this skill knows
@@ -40,12 +40,12 @@ How should this mind be deployed?
     for the comms address and bearer token.
 
 (C) Standalone — its own complete, independent HiveMind. That is a full
-    system install: run /setup instead, then come back and add minds.
+    system install: run the hive installer instead, then come back and add minds.
 ```
 
 Set `TOPOLOGY=local` for (A), `TOPOLOGY=spoke` for (B).
 
-For (C): tell the operator to run `/setup` to bootstrap a full HiveMind
+For (C): tell the operator to run the hive installer to bootstrap a full HiveMind
 Docker stack, then run this skill again choosing (A). Stop here.
 
 **1b. Comms coordinates — ask only when `TOPOLOGY=spoke`:**

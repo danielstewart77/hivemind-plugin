@@ -27,7 +27,7 @@ if [ -f "$NS/.env" ]; then
   CT=$(grep COMMS_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
   AT=$(grep COMMS_ADMIN_BEARER_TOKEN "$NS/.env" | cut -d= -f2)
 else
-  # spoke (comms is remote): read the coordinates /setup-nervous-system wrote
+  # spoke (comms is remote): read the comms coordinates the installer wrote
   ENV=<hive-mind dir>/.env
   COMMS_URL=$(grep ^COMMS_URL= "$ENV" | cut -d= -f2-)
   CT=$(grep ^COMMS_BEARER_TOKEN= "$ENV" | cut -d= -f2-)

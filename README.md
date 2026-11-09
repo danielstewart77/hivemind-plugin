@@ -1,8 +1,8 @@
 # Hive Mind — Claude Code Plugin
 
-A Claude Code plugin that installs all Hive Mind skills, agents, and hooks. Install this plugin to get the full suite of multi-mind orchestration, setup, memory, and operational tools as native `/hivemind:<skill>` commands.
+A Claude Code plugin that installs all Hive Mind skills, agents, and hooks. Install this plugin to get the full suite of multi-mind orchestration, memory, and operational tools as native `/hivemind:<skill>` commands.
 
-> The plugin distributes skills and agents. The Hive Mind server (gateway, broker, MCP tools) lives in a separate repo and is deployed during `/setup`.
+> The plugin distributes skills and agents. The Hive Mind server (gateway, broker, MCP tools) lives in a separate repo and is deployed by the hive installer.
 
 ---
 
@@ -12,13 +12,7 @@ A Claude Code plugin that installs all Hive Mind skills, agents, and hooks. Inst
 claude /plugin marketplace add danielstewart77/hivemind-plugin
 ```
 
-Then run setup:
-
-```bash
-/hivemind:setup all
-```
-
-The `/setup` skill walks you through deploying the server infrastructure, configuring providers, setting up minds, and selecting optional skill groups.
+The server infrastructure, providers and minds are brought up by the hive installer, not by this plugin.
 
 ---
 
@@ -44,7 +38,7 @@ Edit `.mcp.json` and replace the placeholders with paths to your cloned `hive-mi
 
 ## Skill Groups
 
-Skills are organized into install groups. **Core skills are installed automatically** for every mind. Optional groups are selected during `/setup-mind`.
+Skills are organized into install groups. **Core skills are installed automatically** for every mind. Optional groups are selected when a mind is installed.
 
 See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog with install behavior, group definitions, and per-skill descriptions.
 
@@ -66,17 +60,7 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 ### Setup
 | Skill | Description |
 |---|---|
-| `/hivemind:setup` | Master setup wizard — run this first |
-| `/hivemind:setup-prerequisites` | Detect hardware, OS, and software prerequisites |
-| `/hivemind:setup-config` | Generate configuration files |
-| `/hivemind:setup-auth` | Set up Claude Code authentication |
-| `/hivemind:setup-nervous-system` | Bootstrap and verify the nervous system |
-| `/hivemind:setup-provider` | Configure AI providers |
-| `/hivemind:setup-body` | Bootstrap communication surfaces and integrations |
-| `/hivemind:setup-mind` | Set up minds with topology and skill selection |
 | `/hivemind:setup-personality` | Define a mind's identity and seed it into the graph |
-| `/hivemind:setup-resolve-placeholders` | Substitute `{{USER}}` and `{{PLANKA_*}}` across skill files |
-| `/hivemind:setup-remote` | Install Hive Mind on a remote host via SSH |
 
 ### Mind Management
 | Skill | Description |
@@ -196,7 +180,7 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 
 ## Hooks
 
-The plugin includes two lifecycle hooks configured during `/setup-mind`:
+The plugin includes two lifecycle hooks installed with each mind:
 
 - **SessionStart** — loads the mind's identity from the knowledge graph (`/self-reflect --load`, synchronous)
 - **Stop** — manages the reflection cycle via `soul_nudge.sh`:
@@ -219,7 +203,7 @@ The Hive Mind server (FastAPI gateway, MCP tools, broker, mind containers) is in
 https://github.com/danielstewart77/hive-mind
 ```
 
-The `/hivemind:setup` skill clones and deploys it automatically.
+The hive installer clones and deploys it.
 
 ---
 

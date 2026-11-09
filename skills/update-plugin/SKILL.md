@@ -83,7 +83,7 @@ for dir in "$PLUGIN_CACHE"/*/; do
 done
 
 # Refresh skill and agent symlinks
-# Try the sync hook first (available after /setup-mind), fall back to manual symlinks
+# Try the sync hook first, fall back to manual symlinks
 if [ -f "$HOME/.claude/hooks/plugin_skills_sync.sh" ]; then
   bash "$HOME/.claude/hooks/plugin_skills_sync.sh" 2>/dev/null
 else

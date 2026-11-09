@@ -118,8 +118,8 @@ Check `config.yaml` for `tts_provider`. If `none` → skip this step.
 
 If TTS is configured:
 - Ask: "Would you like to set up a voice profile for `<mind_id>` now?"
-- If yes → delegate to the voice asset setup section of `/setup-body` for the relevant provider
-- If no → "Skip. You can add a voice profile later by re-running `/setup-body`."
+- If yes → set the voice in the mind's `runtime.yaml` for the relevant provider
+- If no → "Skip. You can add a voice profile later in the mind's `runtime.yaml`."
 
 ---
 
