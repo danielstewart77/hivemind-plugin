@@ -13,12 +13,16 @@ This plugin distributes Hive Mind skills, agents, and lifecycle hooks. Skills ar
 
 ## Agents
 
-11 agent definitions in `agents/`. These are subagent specs launched via the Agent tool:
+6 agent definitions in `agents/`. These are subagent specs launched via the Agent tool:
 
 - **Memory pipeline**: `parse-memory`, `classify-memory`, `route-memory`, `save-memory`
 - **Identity**: `reflect` — background reflection, writes to knowledge graph
-- **Dev pipeline**: `step-get-story`, `step-planning`, `step-coding`, `step-review`, `step-push-pr`
 - **Async**: `poll-task-result` — polls broker for inter-mind task results
+
+The retired step pipeline (`step-get-story`, `step-planning`, `step-coding`,
+`step-review`, `step-push-pr`) is kept, unloaded, in `.archive/agents/`.
+Planning is `/plan-feature` and building is `/code`; a file left under
+`agents/` is still live, which is why the archive sits outside it.
 
 ## Hooks
 

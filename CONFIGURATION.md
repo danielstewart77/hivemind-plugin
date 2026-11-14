@@ -6,11 +6,7 @@ Several skills contain instance-specific values that must be updated after insta
 
 The following skills reference Planka board, list, and label IDs that are specific to the original author's instance:
 
-- `skills/orchestrator/SKILL.md`
-- `skills/create-story/SKILL.md`
 - `skills/planka/SKILL.md`
-- `skills/story-start/SKILL.md`
-- `skills/story-close/SKILL.md`
 
 **Use `/hivemind:planka` to discover your own board and list IDs, then update the values in these skills.**
 
