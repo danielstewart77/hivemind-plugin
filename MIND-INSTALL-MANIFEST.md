@@ -54,14 +54,8 @@ For minds involved in software development workflows.
 
 | Skill | Description |
 |---|---|
-| `code-genius` | Python coding with TDD, pytest, mypy, ruff, self-correction |
-| `planning-genius` | TDD implementation plan from a story description |
-| `master-code-review` | Security-aware code review orchestrator |
-| `code-review-genius` | Structured code review against 9 quality dimensions |
-| `story-start` | Kicks off a development story from a Planka card |
-| `story-close` | Closes a story after PR merge, health check, card move |
-| `create-story` | Create a Planka story card with proper structure |
-| `orchestrator` | Pipeline orchestrator — works Planka cards end-to-end |
+| `plan-feature` | Interrogates requirements, reads them back, names the behaviours tests must protect, splits the work into stories |
+| `code` | Builds an agreed plan autonomously — reads the codebase, grills the spec, implements, designs the tests against the standard it carries, grills the diff, ships to merged |
 | `commit` | Git commit with conventional commit message |
 | `design-session` | Multi-turn design and planning session |
 
@@ -149,16 +143,6 @@ Installed silently alongside Core skills. These back the memory pipeline and ide
 | `classify-memory` | Core — Identity | Classifies chunks against the data class index |
 | `route-memory` | Core — Identity | Reads classified manifest, writes routing manifest |
 | `save-memory` | Core — Identity | Executes memory writes from the routing manifest |
-
-### Development _(a-la-carte, with Development skill group)_
-
-| Agent | Description |
-|---|---|
-| `step-get-story` | Pull a story from Planka and set up documents |
-| `step-planning` | Create a TDD implementation plan |
-| `step-coding` | Implement code from plan using TDD |
-| `step-review` | Structured code review against story requirements |
-| `step-push-pr` | Push branch and create GitHub pull request |
 
 ### Productivity _(a-la-carte, with Productivity skill group)_
 

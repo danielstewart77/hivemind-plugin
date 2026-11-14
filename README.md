@@ -95,16 +95,10 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 ### Development
 | Skill | Description |
 |---|---|
-| `/hivemind:planning-genius` | TDD implementation plan from a story description |
-| `/hivemind:code-genius` | Python feature implementation with TDD and self-correction |
-| `/hivemind:code-review-genius` | Structured code review against 9 quality dimensions |
-| `/hivemind:master-code-review` | Security-aware code review orchestrator |
+| `/hivemind:plan-feature` | Interrogate requirements, read them back, name the behaviours tests must protect, split into stories |
+| `/hivemind:code` | Build an agreed plan autonomously, tests and all, to merged |
 | `/hivemind:design-session` | Multi-turn design and planning session |
 | `/hivemind:mermaid-diagram-creator` | Create and validate Mermaid diagrams |
-| `/hivemind:orchestrator` | Pipeline orchestrator — works Planka cards end-to-end |
-| `/hivemind:story-start` | Kick off a development story from a Planka card |
-| `/hivemind:story-close` | Close a completed story after PR merge |
-| `/hivemind:create-story` | Create a Planka story card with proper structure |
 | `/hivemind:tool-creator` | Create new Hive Mind stateless or stateful tools |
 | `/hivemind:skill-creator-claude` | Guide for creating Claude Code skills correctly |
 | `/hivemind:create-agents-claude` | Guide for creating Claude Code subagents correctly |
@@ -166,11 +160,6 @@ See [`MIND-INSTALL-MANIFEST.md`](MIND-INSTALL-MANIFEST.md) for the full catalog 
 |---|---|
 | `reflect` | Background identity reflection — evaluates 5 criteria, writes to graph |
 | `poll-task-result` | Poll broker for inter-mind task results |
-| `step-get-story` | Pull a story from Planka and set up documents |
-| `step-planning` | Create a TDD implementation plan |
-| `step-coding` | Implement code from plan using TDD |
-| `step-review` | Structured code review against story requirements |
-| `step-push-pr` | Push branch and create GitHub pull request |
 | `parse-memory` | Parse input into a chunk manifest |
 | `classify-memory` | Classify chunks against the data class index |
 | `route-memory` | Read classified manifest and write routing manifest |
