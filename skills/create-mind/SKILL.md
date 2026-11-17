@@ -179,6 +179,7 @@ Write `minds/<name>/runtime.yaml` with:
 - `mind_id` — the generated UUID
 - `default_model` — the chosen model
 - `provider` — `anthropic`, `openai`, or `ollama`
+- `rotation_threshold_percent` — `30`, a bare whole number, never quoted. The percentage of the model's context window at which a conversation is handed over to a fresh one; a file with no line means 100, which is no early rotation, so every new mind gets the line (Daniel, 2026-11-17: thirty "for now"). The mind's Settings card on the console changes it afterwards. The same figure is written in the add-mind skill, in `minds/example/runtime.yaml` and `installer/steps.py` in hive-mind, in `src/configuration_data.py` in hive, and in `setup.sh` and `minds/example/runtime.yaml` in hive-edge-minds; change them together.
 - `runtime_config_dir` — `/usr/src/app/minds/<name>/.codex` for Codex (Codex home), omit for Claude
 - `env` — provider-specific block:
   - Ollama + Claude harness: `ANTHROPIC_AUTH_TOKEN: ollama`, `ANTHROPIC_BASE_URL: <ollama-address>`

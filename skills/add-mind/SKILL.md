@@ -80,6 +80,10 @@ name: <name>
 mind_id: <uuid>
 default_model: <model>
 provider: <anthropic | ollama | codex>
+# Percentage of the model's context window at which a conversation is handed
+# over. No line means 100 (no early rotation), so a new mind gets one.
+# Thirty is the figure for new minds everywhere (see create-mind for the list).
+rotation_threshold_percent: 30
 runtime_config_dir: /usr/src/app/minds/<name>/.codex   # or .claude per harness
 env:
   # provider-specific, e.g. for ollama:
